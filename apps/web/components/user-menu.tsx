@@ -1,0 +1,80 @@
+"use client";
+
+import * as React from "react";
+import Link from "next/link";
+import { LogOut, UserRound } from "lucide-react";
+
+import { signIn, signOut, useSession } from "@olgax/auth/client";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { buttonVariants } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuGroup,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+
+export function UserMenu() {
+  const { data: session, isPending } = useSession();
+
+  if (isPending) {
+    return <div className="size-8 animate-pulse rounded-full bg-muted" />;
+  }
+
+  if (!session) {
+    return (
+      <DropdownMenu>
+        <DropdownMenuTrigger className={cn(buttonVariants({ variant: "outline" }))}>
+          Sign in
+        </DropdownMenuTrigger>
+        <DropdownMenuContent align="end">
+          <DropdownMenuItem
+            onClick={() => signIn.social({ provider: "github", callbackURL: "/" })}
+          >
+            Continue with GitHub
+          </DropdownMenuItem>
+          <DropdownMenuItem
+            onClick={() => signIn.social({ provider: "google", callbackURL: "/" })}
+          >
+            Continue with Google
+          </DropdownMenuItem>
+        </DropdownMenuContent>
+      </DropdownMenu>
+    );
+  }
+
+  const { user } = session;
+
+  return (
+    <DropdownMenu>
+      <DropdownMenuTrigger
+        className={cn(buttonVariants({ variant: "ghost", size: "icon" }), "rounded-full")}
+      >
+        <Avatar>
+          <AvatarImage src={user.image ?? undefined} alt={user.name} />
+          <AvatarFallback>
+            <UserRound className="size-4" />
+          </AvatarFallback>
+        </Avatar>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="end">
+        <DropdownMenuGroup>
+          <DropdownMenuLabel className="flex flex-col">
+            <span className="font-medium">{user.name}</span>
+            <span className="text-xs font-normal text-muted-foreground">{user.email}</span>
+          </DropdownMenuLabel>
+        </DropdownMenuGroup>
+        <DropdownMenuSeparator />
+        <DropdownMenuItem render={<Link href="/profile" />}>Profile</DropdownMenuItem>
+        <DropdownMenuItem onClick={() => signOut()}>
+          <LogOut className="size-4" />
+          Sign out
+        </DropdownMenuItem>
+      </DropdownMenuContent>
+    </DropdownMenu>
+  );
+}

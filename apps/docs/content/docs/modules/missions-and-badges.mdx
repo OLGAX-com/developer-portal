@@ -1,0 +1,30 @@
+---
+title: Missions & Badges
+description: Data-driven missions, automatic completion, badges, and certificates
+---
+
+## Missions
+
+Missions are rows in the `Mission` table (`slug`, `title`, `description`, `type`, `xpReward`,
+optional `badgeId`) — never hardcoded in application code. `MissionType` is one of `FIRST_PR`,
+`DOCUMENTATION`, `BUG_FIX`, `TESTING`, `CODE_REVIEW`, `COMMUNITY_SUPPORT`.
+
+`checkAndCompleteMissions(userId)` re-checks every active mission against the user's synced
+GitHub activity (matched by `Profile.githubUsername`) and auto-completes + rewards any newly-met
+one. It runs whenever a signed-in user visits `/profile` or `/missions`.
+
+## Badges
+
+Badges are rows in the `Badge` table, awarded via `awardBadge(userId, slug)` — idempotent (won't
+double-award) and creates an in-app notification. See `prisma/seed.ts` for the seeded set (First
+PR, Top Reviewer, Bug Hunter, Documentation Hero, Community Helper, Mentor, Maintainer).
+
+## Certificates
+
+`issueCertificate()` creates a `Certificate` row. Every certificate has:
+
+- A public verification page at `/certificates/[id]`
+- A downloadable PDF at `/api/certificates/[id]/pdf`, generated on the fly with `pdf-lib`,
+  embedding a QR code (via the `qrcode` package) that links back to the verification page
+
+Graduating a mentorship (`graduateMentorship`) automatically issues one.

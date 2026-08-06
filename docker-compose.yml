@@ -1,0 +1,16 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: olgax-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: olgax
+    ports:
+      - "5434:5432"
+    volumes:
+      - olgax-postgres-data:/var/lib/postgresql/data
+
+volumes:
+  olgax-postgres-data:

@@ -1,0 +1,16 @@
+{
+  "name": "olgax-community-platform",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "pnpm --filter web dev",
+    "dev:docs": "pnpm --filter docs dev",
+    "build": "pnpm --filter web build",
+    "build:docs": "pnpm --filter docs build",
+    "start": "pnpm --filter web start",
+    "lint": "pnpm -r --if-present lint",
+    "typecheck": "pnpm -r --if-present typecheck",
+    "test": "pnpm -r --if-present test"
+  }
+}
+

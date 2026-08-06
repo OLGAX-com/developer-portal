@@ -1,0 +1,8 @@
+{
+  "extends": "../../tooling/typescript/base.json",
+  "compilerOptions": {
+    "module": "esnext",
+    "noEmit": true
+  },
+  "include": ["src/**/*.ts", "scripts/**/*.ts"]
+}

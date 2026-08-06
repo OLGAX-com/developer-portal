@@ -1,0 +1,23 @@
+{
+  "name": "@olgax/github",
+  "version": "0.1.0",
+  "private": true,
+  "main": "./src/index.ts",
+  "types": "./src/index.ts",
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "add-project": "tsx scripts/add-project.ts",
+    "sync-all": "tsx scripts/sync-all.ts"
+  },
+  "dependencies": {
+    "@octokit/plugin-retry": "^7",
+    "@octokit/plugin-throttling": "^9",
+    "@octokit/rest": "^21",
+    "@olgax/database": "workspace:*"
+  },
+  "devDependencies": {
+    "@types/node": "^20",
+    "tsx": "^4",
+    "typescript": "^5"
+  }
+}

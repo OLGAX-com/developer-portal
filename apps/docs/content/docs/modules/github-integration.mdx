@@ -1,0 +1,31 @@
+---
+title: GitHub Integration
+description: Syncing, webhooks, and rate-limit handling
+---
+
+## Syncing a project
+
+```bash
+pnpm --filter @olgax/github run add-project -- --owner=<org> --repo=<repo> [--maintainer=email]
+pnpm --filter @olgax/github run sync-all   # re-sync every tracked project
+```
+
+Sync uses `GITHUB_SYNC_TOKEN` (a service-level token), **not** a signed-in user's own OAuth
+token — this keeps syncing working regardless of who's signed in, and keeps sign-in scopes
+minimal (identity-only). If `GITHUB_SYNC_TOKEN` isn't set, it falls back to unauthenticated
+requests (60/hr GitHub rate limit) with a warning — fine for occasional manual syncs, not for
+scale.
+
+## Webhooks
+
+Point a repo webhook at `/api/github/webhook` (content type `application/json`, secret matching
+`GITHUB_WEBHOOK_SECRET`), subscribed to `issues`, `pull_request`, `pull_request_review`,
+`release`, and `push`. The handler verifies the HMAC signature, then re-syncs the affected
+project. Simple full re-sync beats fine-grained incremental updates until sync volume becomes a
+real problem.
+
+## Rate limits
+
+The Octokit client (`packages/github/src/client.ts`) is wrapped with the official retry and
+throttling plugins, so transient rate limits are retried automatically rather than failing the
+whole sync.

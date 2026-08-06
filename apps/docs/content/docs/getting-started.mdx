@@ -1,0 +1,56 @@
+---
+title: Getting Started
+description: Local setup for the Olgax Community Platform monorepo
+---
+
+## Prerequisites
+
+- Node.js 20+, pnpm 9+, Docker (for local PostgreSQL)
+
+## Install & configure
+
+```bash
+pnpm install
+docker compose up -d                                # starts Postgres on localhost:5434
+cp .env.example packages/database/.env
+cp .env.example apps/web/.env.local
+```
+
+Fill in `apps/web/.env.local`:
+
+- `BETTER_AUTH_SECRET` — any random string (e.g. `openssl rand -base64 32`)
+- `GITHUB_CLIENT_ID` / `GITHUB_CLIENT_SECRET` — from a GitHub OAuth App with callback URL
+  `http://localhost:3000/api/auth/callback/github`
+- `GOOGLE_CLIENT_ID` / `GOOGLE_CLIENT_SECRET` — optional, same pattern for Google
+- `GITHUB_SYNC_TOKEN` — optional personal access token, used server-side to sync tracked
+  projects (works unauthenticated too, at a much lower GitHub rate limit)
+
+## Migrate & seed
+
+```bash
+pnpm --filter @olgax/database run migrate
+pnpm --filter @olgax/database run db:seed        # seeds data-driven badges + missions
+```
+
+## Track a project
+
+```bash
+pnpm --filter @olgax/github run add-project -- --owner=OLGAX-com --repo=olgax-pos --maintainer=you@example.com
+```
+
+## Run
+
+```bash
+pnpm dev          # apps/web on :3000
+pnpm dev:docs     # this docs site on :3001
+```
+
+## Managing accounts
+
+The first sign-in (GitHub or Google) auto-creates a `User` + `Profile` row with the default
+`CONTRIBUTOR` role.
+
+```bash
+pnpm --filter @olgax/database run users                                  # list users
+pnpm --filter @olgax/database run promote -- --email=you@example.com     # -> ADMINISTRATOR
+```

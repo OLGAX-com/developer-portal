@@ -1,0 +1,434 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  VISITOR
+  CONTRIBUTOR
+  MENTOR
+  MAINTAINER
+  ADMINISTRATOR
+}
+
+// Core Better Auth tables (user, session, account, verification).
+model User {
+  id            String   @id @default(uuid())
+  name          String
+  email         String   @unique
+  emailVerified Boolean  @default(false)
+  image         String?
+  role          Role     @default(CONTRIBUTOR)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  sessions Session[]
+  accounts Account[]
+  profile  Profile?
+
+  badges        UserBadge[]
+  missions      UserMission[]
+  certificates  Certificate[]
+  notifications Notification[]
+  maintainerOf  ProjectMaintainer[]
+
+  mentorshipsAsMentor  Mentorship[] @relation("MentorMentorships")
+  mentorshipsAsStudent Mentorship[] @relation("StudentMentorships")
+
+  mentorApplications MentorApplication[]
+  onboardingSteps    OnboardingStep[]
+  taskClaims         TaskClaim[]
+  taskComments       TaskComment[]
+}
+
+model Session {
+  id        String   @id @default(uuid())
+  token     String   @unique
+  expiresAt DateTime
+  ipAddress String?
+  userAgent String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model Account {
+  id                    String    @id @default(uuid())
+  accountId             String
+  providerId            String
+  accessToken           String?
+  refreshToken          String?
+  idToken               String?
+  accessTokenExpiresAt  DateTime?
+  refreshTokenExpiresAt DateTime?
+  scope                 String?
+  password              String?
+  createdAt             DateTime  @default(now())
+  updatedAt             DateTime  @updatedAt
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model Verification {
+  id         String   @id @default(uuid())
+  identifier String
+  value      String
+  expiresAt  DateTime
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+}
+
+// One profile per contributor; expands further in the Contributor module (Phase 4).
+model Profile {
+  id             String   @id @default(uuid())
+  githubUsername String?  @unique
+  bio            String?
+  university     String?
+  age            Int?
+  location       String?
+  linkedinUrl    String?
+  xp             Int      @default(0)
+  level          Int      @default(1)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  userId String @unique
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+// A tracked open-source project. GitHub is the source of truth; these are synced caches
+// used for the Project Module (Phase 5), leaderboards, and mission/badge tracking.
+model Project {
+  id              String    @id @default(uuid())
+  slug            String    @unique
+  name            String
+  description     String?
+  githubOwner     String
+  githubRepo      String
+  homepageUrl     String?
+  primaryLanguage String?
+  stargazersCount Int       @default(0)
+  defaultBranch   String    @default("main")
+  lastSyncedAt    DateTime?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  issues      GithubIssue[]
+  releases    GithubRelease[]
+  maintainers ProjectMaintainer[]
+
+  @@unique([githubOwner, githubRepo])
+}
+
+// Explicit per-project maintainers (distinct from the global MAINTAINER role).
+model ProjectMaintainer {
+  id        String   @id @default(uuid())
+  createdAt DateTime @default(now())
+
+  projectId String
+  project   Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  userId    String
+  user      User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([projectId, userId])
+}
+
+// Covers both issues and pull requests, matching GitHub's own API (a PR is also an issue).
+model GithubIssue {
+  id            String    @id @default(uuid())
+  number        Int
+  title         String
+  state         String
+  isPullRequest Boolean   @default(false)
+  isMerged      Boolean   @default(false)
+  authorLogin   String
+  url           String
+  labels        String[]  @default([])
+  assignees     String[]  @default([])
+  openedAt      DateTime
+  closedAt      DateTime?
+  mergedAt      DateTime?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  projectId String
+  project   Project        @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  reviews   GithubReview[]
+  claims    TaskClaim[]
+  comments  TaskComment[]
+
+  @@unique([projectId, number])
+}
+
+// Code review activity on a pull request, used for "Top Reviewer" badges/missions.
+model GithubReview {
+  id            String   @id @default(uuid())
+  reviewerLogin String
+  state         String
+  submittedAt   DateTime
+  createdAt     DateTime @default(now())
+
+  issueId String
+  issue   GithubIssue @relation(fields: [issueId], references: [id], onDelete: Cascade)
+}
+
+model GithubRelease {
+  id          String    @id @default(uuid())
+  tagName     String
+  name        String?
+  url         String
+  publishedAt DateTime?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  projectId String
+  project   Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  @@unique([projectId, tagName])
+}
+
+// ---------------------------------------------------------------------------
+// Badges & Certificates (Phase 7). Data-driven: no hardcoded badge logic.
+// ---------------------------------------------------------------------------
+
+model Badge {
+  id          String   @id @default(uuid())
+  slug        String   @unique
+  name        String
+  description String
+  icon        String   @default("award")
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  userBadges UserBadge[]
+  missions   Mission[]
+}
+
+model UserBadge {
+  id        String   @id @default(uuid())
+  awardedAt DateTime @default(now())
+
+  userId  String
+  user    User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  badgeId String
+  badge   Badge  @relation(fields: [badgeId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, badgeId])
+}
+
+model Certificate {
+  id           String   @id @default(uuid())
+  title        String
+  issueDate    DateTime @default(now())
+  mentorName   String?
+  achievements String[] @default([])
+  createdAt    DateTime @default(now())
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+// ---------------------------------------------------------------------------
+// Missions (Phase 6). Configurable mission types, no hardcoding.
+// ---------------------------------------------------------------------------
+
+enum MissionType {
+  FIRST_PR
+  DOCUMENTATION
+  BUG_FIX
+  TESTING
+  CODE_REVIEW
+  COMMUNITY_SUPPORT
+}
+
+model Mission {
+  id          String      @id @default(uuid())
+  slug        String      @unique
+  title       String
+  description String
+  type        MissionType
+  xpReward    Int         @default(0)
+  isActive    Boolean     @default(true)
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+
+  badgeId String?
+  badge   Badge?  @relation(fields: [badgeId], references: [id])
+
+  userMissions UserMission[]
+}
+
+enum MissionStatus {
+  IN_PROGRESS
+  COMPLETED
+}
+
+model UserMission {
+  id          String        @id @default(uuid())
+  status      MissionStatus @default(IN_PROGRESS)
+  completedAt DateTime?
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+
+  userId    String
+  user      User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  missionId String
+  mission   Mission @relation(fields: [missionId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, missionId])
+}
+
+// ---------------------------------------------------------------------------
+// Mentorship (Phase 8). Reusable across multiple cohorts, not hardcoded to one.
+// ---------------------------------------------------------------------------
+
+model Cohort {
+  id        String    @id @default(uuid())
+  slug      String    @unique
+  name      String
+  startsAt  DateTime?
+  endsAt    DateTime?
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+
+  mentorships Mentorship[]
+}
+
+enum MentorshipStatus {
+  PENDING
+  ACTIVE
+  GRADUATED
+  DECLINED
+  CANCELLED
+}
+
+model Mentorship {
+  id        String           @id @default(uuid())
+  status    MentorshipStatus @default(PENDING)
+  message   String?
+  feedback  String?
+  createdAt DateTime         @default(now())
+  updatedAt DateTime         @updatedAt
+
+  mentorId  String
+  mentor    User    @relation("MentorMentorships", fields: [mentorId], references: [id], onDelete: Cascade)
+  studentId String
+  student   User    @relation("StudentMentorships", fields: [studentId], references: [id], onDelete: Cascade)
+  cohortId  String?
+  cohort    Cohort? @relation(fields: [cohortId], references: [id])
+
+  sessions MentorshipSession[]
+
+  @@unique([mentorId, studentId, cohortId])
+}
+
+model MentorshipSession {
+  id          String   @id @default(uuid())
+  scheduledAt DateTime
+  notes       String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  mentorshipId String
+  mentorship   Mentorship @relation(fields: [mentorshipId], references: [id], onDelete: Cascade)
+}
+
+// ---------------------------------------------------------------------------
+// Notifications (Phase 10). In-app only for now; background jobs deferred
+// until a real need for scheduled/email delivery emerges.
+// ---------------------------------------------------------------------------
+
+enum NotificationType {
+  BADGE_AWARDED
+  MISSION_COMPLETED
+  MENTORSHIP_REQUEST
+  MENTORSHIP_UPDATE
+  SYSTEM
+}
+
+model Notification {
+  id        String           @id @default(uuid())
+  type      NotificationType
+  title     String
+  body      String?
+  link      String?
+  readAt    DateTime?
+  createdAt DateTime         @default(now())
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+// ---------------------------------------------------------------------------
+// Mentor verification, onboarding, and the task board.
+// See docs/onboarding-and-community-plan.md for the full design.
+// ---------------------------------------------------------------------------
+
+enum ApplicationStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+// A contributor's request to become a mentor - requires manual admin approval.
+model MentorApplication {
+  id         String            @id @default(uuid())
+  message    String
+  status     ApplicationStatus @default(PENDING)
+  reviewNote String?
+  reviewedAt DateTime?
+  createdAt  DateTime          @default(now())
+  updatedAt  DateTime          @updatedAt
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+// Self-reported onboarding steps that can't be auto-verified from GitHub activity
+// (e.g. joined Discord). Auto-verifiable steps reuse the Mission system instead.
+model OnboardingStep {
+  id          String   @id @default(uuid())
+  key         String
+  completedAt DateTime @default(now())
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, key])
+}
+
+// Tracks intent-to-work-on an issue within the platform. Not a real GitHub
+// assignment (most contributors lack write access) - links out to the real
+// issue so a maintainer can assign them there.
+model TaskClaim {
+  id         String    @id @default(uuid())
+  claimedAt  DateTime  @default(now())
+  releasedAt DateTime?
+
+  userId  String
+  user    User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  issueId String
+  issue   GithubIssue @relation(fields: [issueId], references: [id], onDelete: Cascade)
+
+  @@unique([issueId, userId])
+}
+
+// A lightweight discussion thread per task, so contributors can ask/answer
+// "are you still working on this?" instead of a claim going silently stale.
+model TaskComment {
+  id        String   @id @default(uuid())
+  body      String
+  createdAt DateTime @default(now())
+
+  userId  String
+  user    User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  issueId String
+  issue   GithubIssue @relation(fields: [issueId], references: [id], onDelete: Cascade)
+}

@@ -1,0 +1,35 @@
+---
+title: Projects Module
+description: Project overview, docs, contributors, issues/PRs, and releases
+---
+
+A `Project` row (`githubOwner` + `githubRepo`, unique) represents one tracked open-source
+project. Register one with:
+
+```bash
+pnpm --filter @olgax/github run add-project -- --owner=OLGAX-com --repo=olgax-pos
+```
+
+## What's synced vs. fetched live
+
+| Data | Source |
+|---|---|
+| Repo metadata (stars, language, homepage) | Synced into `Project` |
+| Issues & pull requests | Synced into `GithubIssue` (a PR is an issue with `isPullRequest`/`isMerged`) |
+| Reviews | Synced into `GithubReview` |
+| Releases | Synced into `GithubRelease` |
+| **README** | Fetched live via `getReadme()` — never persisted |
+| **`docs/` folder pages** | Fetched live via `listDocsPages()` + `getDocPage()` — never persisted |
+| **Contributors list** | Fetched live via `getContributors()` — never persisted |
+
+Fetching docs and contributors live (rather than syncing them) means they can never drift out of
+sync with the real repository, at the cost of one extra GitHub API call per page view.
+
+A project's full `docs/` folder (flat, one level deep) renders at `/projects/[slug]/docs` and
+`/projects/[slug]/docs/[page]` in the main app - see [Projects](/docs/projects) for a live index
+of every tracked project's docs.
+
+## Maintainers
+
+`ProjectMaintainer` links specific users to a project (distinct from the global `MAINTAINER`
+role) — set via `add-project --maintainer=email@example.com`.

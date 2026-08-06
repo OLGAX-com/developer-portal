@@ -1,0 +1,26 @@
+---
+title: Mentorship Module
+description: Mentors, requests, sessions, and graduation
+---
+
+## Data model
+
+- `Mentorship` — links a `mentorId` and `studentId` (both `User`), with a `status`
+  (`PENDING → ACTIVE → GRADUATED`, or `DECLINED`/`CANCELLED`), optional `cohortId`
+- `Cohort` — groups mentorships so the same mentor/student pair can repeat across cohorts
+- `MentorshipSession` — individual scheduled sessions under a mentorship
+
+A user is listed as a mentor on `/mentorship` if their role is `MENTOR`, `MAINTAINER`, or
+`ADMINISTRATOR`.
+
+## Flow
+
+1. A signed-in user requests mentorship from a mentor (`requestMentorship`) → `PENDING`
+2. The mentor accepts (`ACTIVE`) or declines (`DECLINED`) from their "Students you're mentoring"
+   list on `/mentorship`
+3. The mentor graduates the student (`graduateMentorship`) → `GRADUATED`, which also issues a
+   [certificate](/docs/modules/missions-and-badges)
+
+All three actions are Next.js Server Actions in `apps/web/app/mentorship/actions.ts`, each
+re-verifying that the caller is actually the assigned mentor before mutating anything server-side
+— never trust the UI alone for authorization.

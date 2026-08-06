@@ -1,0 +1,42 @@
+---
+title: Architecture
+description: Monorepo layout, tech stack, and how data flows
+---
+
+## Monorepo layout
+
+```
+apps/
+  web/       Next.js App Router app (the platform itself)
+  docs/      This site — Fumadocs, MDX-in-git
+packages/
+  database/  Prisma schema + client + all domain services (xp, badges, missions, ...)
+  auth/      Better Auth config (GitHub + Google OAuth), RBAC helper
+  github/    GitHub sync (Octokit), webhook handling, README/contributor fetching
+tooling/
+  typescript/base.json   shared tsconfig
+```
+
+## Tech stack
+
+Next.js (App Router) · React · TypeScript (strict) · Tailwind CSS v4 · shadcn/ui (Base UI) ·
+Prisma ORM · PostgreSQL · Better Auth · Octokit.
+
+## How data flows
+
+1. **Auth**: Better Auth handles GitHub/Google sign-in. A `databaseHooks` hook creates a
+   `Profile` row for every new user and captures their real GitHub login (`packages/auth`).
+2. **Sync**: `packages/github` pulls repo metadata, issues/PRs, reviews, and releases from
+   GitHub into `Project` / `GithubIssue` / `GithubReview` / `GithubRelease`. Real-time updates
+   come from a webhook at `/api/github/webhook`; a `sync-all` script supports scheduled re-syncs.
+3. **Gamification**: `packages/database/src/services` computes XP/levels, awards badges, and
+   auto-completes missions by matching a contributor's `Profile.githubUsername` against synced
+   GitHub activity — no manual bookkeeping required.
+4. **Pages**: `apps/web` reads this data directly in Server Components (Prisma runs server-side
+   only) and uses Server Actions for mutations (mentorship requests, marking notifications read).
+
+## Why GitHub is never duplicated
+
+Per-project documentation, commit history, and code all stay on GitHub. The platform only caches
+what it needs to compute contribution tracking, missions, and leaderboards — a project's README is
+fetched live on each page view rather than stored, so it can never drift out of sync.

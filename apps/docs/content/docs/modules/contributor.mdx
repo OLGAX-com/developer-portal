@@ -1,0 +1,23 @@
+---
+title: Contributor Module
+description: Profiles, XP, levels, badges, and contribution history
+---
+
+Every signed-in user has a `Profile` (one-to-one with `User`) holding `githubUsername`, `bio`,
+`university`, `xp`, and `level`. It's created automatically on first sign-in.
+
+## XP & levels
+
+`packages/database/src/services/xp.ts` defines the curve: level *N* requires *N × 100* XP to
+clear (100 for level 1→2, 200 for 2→3, and so on). `addXp(userId, amount)` increments XP and
+recalculates the level in one call — it's the only place level-up logic lives.
+
+## Contribution history
+
+The profile page (`/profile`) matches `Profile.githubUsername` against synced `GithubIssue`
+(issues/PRs authored) and `GithubReview` (reviews given) rows across every tracked project — no
+separate "activity feed" table to keep in sync.
+
+## Badges
+
+See [Missions & Badges](/docs/modules/missions-and-badges).

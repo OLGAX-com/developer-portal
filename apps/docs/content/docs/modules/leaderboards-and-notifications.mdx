@@ -1,0 +1,26 @@
+---
+title: Leaderboards & Notifications
+description: Reusable leaderboard queries and in-app notifications
+---
+
+## Leaderboards
+
+`packages/database/src/services/leaderboard.ts` exposes three reusable queries, all consumed by
+`/leaderboard` (currently the global one) and available for reuse anywhere else:
+
+- `getGlobalLeaderboard()` — ranks `Profile` rows by XP
+- `getProjectLeaderboard(projectId)` — ranks contributors by merged PRs in one project
+- `getMonthlyLeaderboard()` — ranks merged PRs in the current calendar month
+
+None of these persist a separate "leaderboard" table — they're computed on read from the same
+`Profile`/`GithubIssue` data everything else uses, so there's nothing to keep in sync.
+
+## Notifications
+
+`Notification` rows (`type`, `title`, `body`, `link`, `readAt`) are created by the platform
+itself — badge awards and mission completions currently trigger one. The header's notification
+bell (`components/notification-bell.tsx`) is an async Server Component that reads unread count +
+recent notifications directly; "mark all read" is a Server Action.
+
+Background/scheduled delivery (email, digest jobs) is intentionally deferred until there's a real
+need — see the build plan for the Trigger.dev/Inngest decision.
