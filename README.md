@@ -1,6 +1,6 @@
 # Olgax Community Platform
 
-Open-source community and mentorship platform built around GitHub. See [.github/copilot-instructions.md](.github/copilot-instructions.md) for the full vision, and [.planning/plan.md](.planning/plan.md) for the build roadmap (internal build-tracking notes, not user-facing docs - those live in `apps/docs`).
+Open-source community and mentorship platform built around GitHub. See [.github/copilot-instructions.md](.github/copilot-instructions.md) for the full vision, and `apps/docs` for the user-facing documentation site.
 
 ## Apps & Packages
 
@@ -94,7 +94,7 @@ For real-time updates, add a webhook on the tracked repo pointing to `https://<y
 - **Leaderboards**: global leaderboard live now; per-project/monthly queries in `packages/database` ready to wire into more pages
 - **Notifications**: in-app bell, awarded on badge/mission events
 
-See [.planning/plan.md](.planning/plan.md) for the full phase-by-phase roadmap and what's still open (E2E tests, production deployment).
+See `apps/docs` (run `pnpm run dev:docs`) for the full phase-by-phase module documentation.
 
 ## Docker
 
@@ -104,5 +104,5 @@ docker run -p 3000:3000 --env-file apps/web/.env.local olgax-web
 ```
 
 This builds `apps/web` only, using Next.js standalone output. You still need a reachable
-PostgreSQL instance (set `DATABASE_URL` accordingly) — see [.planning/plan.md](.planning/plan.md) Phase 13
-for what's left before an actual production launch (hosting choice, managed DB, secrets, monitoring).
+PostgreSQL instance (set `DATABASE_URL` accordingly) before an actual production launch
+(hosting choice, managed DB, secrets, monitoring are still open decisions).

@@ -38,4 +38,8 @@ yarn-error.log*
 
 # typescript
 *.tsbuildinfo
+
+# internal build-tracking notes (session continuity for AI-assisted development,
+# not meant for public repo history - see apps/docs for real user-facing docs)
+.planning/
 next-env.d.ts

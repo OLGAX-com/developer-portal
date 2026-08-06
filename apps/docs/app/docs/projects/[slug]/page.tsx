@@ -53,7 +53,16 @@ export default async function ProjectDocsIndexPage({ params }: { params: Promise
           ← All projects
         </Link>
         {pages.length === 0 ? (
-          <p className="text-fd-muted-foreground">This project doesn&apos;t have a docs folder yet.</p>
+          <p className="text-fd-muted-foreground">
+            This project doesn&apos;t have a <code>docs/</code> folder yet - see its{' '}
+            <Link
+              href={`https://github.com/${project.githubOwner}/${project.githubRepo}#readme`}
+              className="underline"
+            >
+              README on GitHub
+            </Link>{' '}
+            instead.
+          </p>
         ) : (
           <Cards>
             {pages.map((page) => (
