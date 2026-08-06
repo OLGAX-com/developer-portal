@@ -1,8 +1,10 @@
 # Onboarding, Mentor Verification & Community Engagement — Sub-plan
 
+> Internal build-tracking notes for this repo, not user-facing documentation — see `apps/docs` for that.
+
 A focused sub-plan for making contributor onboarding instant + gamified, adding a real mentor
 application/verification workflow, and connecting community spaces. Cross-referenced from the
-main [docs/plan.md](./plan.md) (mainly touches Phase 4, 6, 8).
+main [.planning/plan.md](./plan.md) (mainly touches Phase 4, 6, 8).
 
 ## How to use this document
 

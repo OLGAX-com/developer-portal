@@ -368,7 +368,7 @@ model Notification {
 
 // ---------------------------------------------------------------------------
 // Mentor verification, onboarding, and the task board.
-// See docs/onboarding-and-community-plan.md for the full design.
+// See .planning/onboarding-and-community-plan.md for the full design.
 // ---------------------------------------------------------------------------
 
 enum ApplicationStatus {
