@@ -1,6 +1,10 @@
 import type { MetadataRoute } from "next";
 import { prisma } from "@olgax/database";
 
+// Needs a live DB query, so it can't be statically prerendered at build time
+// (there's no DATABASE_URL available during a Docker image build).
+export const dynamic = "force-dynamic";
+
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? "https://developers.olgax.com";
   const projects = await prisma.project.findMany({ select: { slug: true, updatedAt: true } });

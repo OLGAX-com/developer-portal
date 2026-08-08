@@ -8,6 +8,7 @@ COPY pnpm-lock.yaml pnpm-workspace.yaml package.json ./
 COPY apps/web/package.json apps/web/package.json
 COPY apps/docs/package.json apps/docs/package.json
 COPY packages/database/package.json packages/database/package.json
+COPY packages/database/prisma packages/database/prisma
 COPY packages/auth/package.json packages/auth/package.json
 COPY packages/github/package.json packages/github/package.json
 RUN pnpm install --frozen-lockfile --filter web...

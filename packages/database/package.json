@@ -12,6 +12,7 @@
     "generate": "prisma generate",
     "postinstall": "prisma generate",
     "migrate": "prisma migrate dev",
+    "migrate:deploy": "prisma migrate deploy",
     "db:push": "prisma db push",
     "db:seed": "prisma db seed",
     "studio": "prisma studio",

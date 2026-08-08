@@ -2,6 +2,7 @@
   "name": "olgax-developer-portal",
   "version": "0.1.0",
   "private": true,
+  "packageManager": "pnpm@10.34.5",
   "scripts": {
     "dev": "pnpm --filter web dev",
     "dev:docs": "pnpm --filter docs dev",
