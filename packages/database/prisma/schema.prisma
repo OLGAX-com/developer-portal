@@ -125,6 +125,7 @@ model Project {
   homepageUrl     String?
   primaryLanguage String?
   stargazersCount Int       @default(0)
+  forksCount      Int       @default(0)
   defaultBranch   String    @default("main")
   lastSyncedAt    DateTime?
   createdAt       DateTime  @default(now())
@@ -226,6 +227,9 @@ model ProjectProposal {
   id              String                @id @default(uuid())
   title           String
   description     String
+  repoUrl         String?
+  technologies    String[]              @default([])
+  desiredImpact   String?
   status          ProjectProposalStatus @default(PENDING)
   rejectionReason String?
   createdAt       DateTime              @default(now())

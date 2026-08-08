@@ -26,6 +26,7 @@ export async function approveProposal(proposalId: string) {
   await approveProposalService(proposalId, reviewerId);
   revalidatePath("/projects/proposals/review");
   revalidatePath("/projects/proposals");
+  revalidatePath(`/projects/proposals/${proposalId}`);
 }
 
 export async function rejectProposal(proposalId: string, formData: FormData) {
@@ -35,6 +36,7 @@ export async function rejectProposal(proposalId: string, formData: FormData) {
 
   await rejectProposalService(proposalId, reviewerId, reason);
   revalidatePath("/projects/proposals/review");
+  revalidatePath(`/projects/proposals/${proposalId}`);
 }
 
 export async function linkProposalToProject(proposalId: string, formData: FormData) {

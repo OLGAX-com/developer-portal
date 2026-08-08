@@ -22,6 +22,7 @@ export async function syncProject(owner: string, repo: string, options: SyncOpti
       homepageUrl: repoData.homepage || null,
       primaryLanguage: repoData.language,
       stargazersCount: repoData.stargazers_count,
+      forksCount: repoData.forks_count,
       defaultBranch: repoData.default_branch,
     },
     update: {
@@ -30,6 +31,7 @@ export async function syncProject(owner: string, repo: string, options: SyncOpti
       homepageUrl: repoData.homepage || null,
       primaryLanguage: repoData.language,
       stargazersCount: repoData.stargazers_count,
+      forksCount: repoData.forks_count,
       defaultBranch: repoData.default_branch,
     },
   });

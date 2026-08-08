@@ -1,12 +1,33 @@
 import { prisma } from "../client";
 import { createNotification } from "./notifications";
 
-export function proposeProject(proposerId: string, title: string, description: string) {
-  return prisma.projectProposal.create({ data: { proposerId, title: title.trim(), description: description.trim() } });
+export interface ProposalDetails {
+  repoUrl?: string | null;
+  technologies?: string[];
+  desiredImpact?: string | null;
+}
+
+export function proposeProject(proposerId: string, title: string, description: string, details: ProposalDetails = {}) {
+  return prisma.projectProposal.create({
+    data: {
+      proposerId,
+      title: title.trim(),
+      description: description.trim(),
+      repoUrl: details.repoUrl?.trim() || null,
+      technologies: details.technologies ?? [],
+      desiredImpact: details.desiredImpact || null,
+    },
+  });
 }
 
 /** Only the original proposer can edit a REJECTED proposal, and doing so sends it back to PENDING review. */
-export async function resubmitProposal(proposalId: string, proposerId: string, title: string, description: string) {
+export async function resubmitProposal(
+  proposalId: string,
+  proposerId: string,
+  title: string,
+  description: string,
+  details: ProposalDetails = {},
+) {
   const proposal = await prisma.projectProposal.findUniqueOrThrow({ where: { id: proposalId } });
   if (proposal.proposerId !== proposerId) throw new Error("You can only edit your own proposal.");
   if (proposal.status !== "REJECTED") throw new Error("Only a rejected proposal can be edited and resubmitted.");
@@ -16,6 +37,9 @@ export async function resubmitProposal(proposalId: string, proposerId: string, t
     data: {
       title: title.trim(),
       description: description.trim(),
+      repoUrl: details.repoUrl?.trim() || null,
+      technologies: details.technologies ?? proposal.technologies,
+      desiredImpact: details.desiredImpact || null,
       status: "PENDING",
       rejectionReason: null,
       reviewerId: null,
@@ -27,6 +51,18 @@ export async function resubmitProposal(proposalId: string, proposerId: string, t
 export function listProposalsForUser(userId: string) {
   return prisma.projectProposal.findMany({ where: { proposerId: userId }, orderBy: { createdAt: "desc" } });
 }
+
+/** Real approval rate across every reviewed proposal so far - null until at least one has been decided. */
+export async function getProposalApprovalRate(): Promise<number | null> {
+  const [approved, rejected] = await Promise.all([
+    prisma.projectProposal.count({ where: { status: "APPROVED" } }),
+    prisma.projectProposal.count({ where: { status: "REJECTED" } }),
+  ]);
+  const reviewed = approved + rejected;
+  if (reviewed === 0) return null;
+  return Math.round((approved / reviewed) * 100);
+}
+
 
 /** The review queue for maintainers/administrators - proposals stay invisible to everyone else until reviewed. */
 export function listPendingProposals() {

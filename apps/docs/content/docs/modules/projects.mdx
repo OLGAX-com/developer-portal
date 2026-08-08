@@ -36,15 +36,19 @@ role) — set via `add-project --maintainer=email@example.com`.
 
 ## Project Proposals
 
-Anyone signed in can propose a brand-new project at `/projects/proposals` (title + description).
-A proposal is **private** — visible only to the proposer and to platform `MAINTAINER`/
-`ADMINISTRATOR` users — until it's reviewed at `/projects/proposals/review`:
+Anyone signed in can propose a brand-new project at `/projects/proposals` (title + description, plus
+optional GitHub repo URL, comma-separated technologies, and a desired-impact note). A proposal is
+**private** — visible only to the proposer and to platform `MAINTAINER`/`ADMINISTRATOR` users —
+until it's reviewed. Maintainers can review inline right on the proposal's own page (an "Approve"/
+"Decline with reason" panel appears there while `PENDING`), or from the bulk queue at
+`/projects/proposals/review`:
 
 - **Approve** — the proposal goes public on `/projects/proposals`, opening it up for comments
   (`ProjectProposalComment`) and a "Join project" button (`ProjectProposalInterest`, one row per
   user, idempotent) so contributors can team up before any code exists.
 - **Reject** — requires a reason, which the proposer sees on their own proposal (never shown
-  publicly).
+  publicly). A rejected proposal can be edited and resubmitted by its original proposer, which
+  sends it back to `PENDING` for another review round.
 
 We deliberately don't automate creating the actual GitHub repository — that stays a manual
 maintainer action (`pnpm --filter @olgax/github run add-project`), consistent with "GitHub is the

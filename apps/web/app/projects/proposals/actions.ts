@@ -20,7 +20,14 @@ export async function proposeProject(formData: FormData) {
   const description = (formData.get("description") as string) ?? "";
   if (!title.trim() || !description.trim()) throw new Error("Title and description are required.");
 
-  await proposeProjectService(session.user.id, title, description);
+  const repoUrl = (formData.get("repoUrl") as string) ?? "";
+  const technologies = ((formData.get("technologies") as string) ?? "")
+    .split(",")
+    .map((tech) => tech.trim())
+    .filter(Boolean);
+  const desiredImpact = (formData.get("desiredImpact") as string) ?? "";
+
+  await proposeProjectService(session.user.id, title, description, { repoUrl, technologies, desiredImpact });
   revalidatePath("/projects/proposals");
 }
 
@@ -32,7 +39,14 @@ export async function resubmitProposal(proposalId: string, formData: FormData) {
   const description = (formData.get("description") as string) ?? "";
   if (!title.trim() || !description.trim()) throw new Error("Title and description are required.");
 
-  await resubmitProposalService(proposalId, session.user.id, title, description);
+  const repoUrl = (formData.get("repoUrl") as string) ?? "";
+  const technologies = ((formData.get("technologies") as string) ?? "")
+    .split(",")
+    .map((tech) => tech.trim())
+    .filter(Boolean);
+  const desiredImpact = (formData.get("desiredImpact") as string) ?? "";
+
+  await resubmitProposalService(proposalId, session.user.id, title, description, { repoUrl, technologies, desiredImpact });
   revalidatePath("/projects/proposals");
 }
 
