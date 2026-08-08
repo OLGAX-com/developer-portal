@@ -1,9 +1,10 @@
 import Link from "next/link";
-import { Check, GitBranch, GitPullRequest, GraduationCap, Trophy, Users, Award } from "lucide-react";
+import { Check, GitBranch, GitPullRequest, GraduationCap, Trophy, Users, Award, Handshake } from "lucide-react";
 
 import { getGlobalLeaderboard, prisma } from "@olgax/database";
 import { Button } from "@/components/ui/button";
-import { ContributorCard } from "@/components/contributor-card";
+import { Card, CardContent } from "@/components/ui/card";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { ProjectCard } from "@/components/project-card";
 import { BadgeCard } from "@/components/badge-card";
 import { MissionCard } from "@/components/mission-card";
@@ -17,19 +18,67 @@ const MISSION_TYPE_LABEL: Record<string, string> = {
   COMMUNITY_SUPPORT: "Community Support",
 };
 
-export default async function Home() {
-  const [projects, allContributors, missions, badges, projectCount, mergedPRCount, certificateCount] =
-    await Promise.all([
-      prisma.project.findMany({ orderBy: { stargazersCount: "desc" }, take: 3 }),
-      getGlobalLeaderboard(9999),
-      prisma.mission.findMany({ where: { isActive: true }, orderBy: { createdAt: "asc" }, take: 2 }),
-      prisma.badge.findMany({ orderBy: { name: "asc" }, take: 4 }),
-      prisma.project.count(),
-      prisma.githubIssue.count({ where: { isPullRequest: true, isMerged: true } }),
-      prisma.certificate.count(),
-    ]);
+/** Coarse relative time for the activity ticker - no need for a date library over a few units. */
+function timeAgo(date: Date): string {
+  const seconds = Math.max(0, (Date.now() - date.getTime()) / 1000);
+  if (seconds < 60) return "just now";
+  const minutes = Math.floor(seconds / 60);
+  if (minutes < 60) return `${minutes}m ago`;
+  const hours = Math.floor(minutes / 60);
+  if (hours < 24) return `${hours}h ago`;
+  const days = Math.floor(hours / 24);
+  return `${days}d ago`;
+}
 
-  const topContributors = allContributors.slice(0, 10);
+export default async function Home() {
+  const [
+    projects,
+    allContributors,
+    missions,
+    badges,
+    projectCount,
+    mergedPRCount,
+    certificateCount,
+    recentMergedPRs,
+    recentUsers,
+    recentCertificates,
+  ] = await Promise.all([
+    prisma.project.findMany({ orderBy: { stargazersCount: "desc" }, take: 6 }),
+    getGlobalLeaderboard(9999),
+    prisma.mission.findMany({ where: { isActive: true }, orderBy: { createdAt: "asc" }, take: 2 }),
+    prisma.badge.findMany({ orderBy: { name: "asc" }, take: 4 }),
+    prisma.project.count(),
+    prisma.githubIssue.count({ where: { isPullRequest: true, isMerged: true } }),
+    prisma.certificate.count(),
+    prisma.githubIssue.findMany({
+      where: { isPullRequest: true, isMerged: true },
+      include: { project: true },
+      orderBy: { mergedAt: "desc" },
+      take: 3,
+    }),
+    prisma.user.findMany({ orderBy: { createdAt: "desc" }, take: 3 }),
+    prisma.certificate.findMany({ include: { user: true }, orderBy: { issueDate: "desc" }, take: 3 }),
+  ]);
+
+  const topContributors = allContributors.slice(0, 8);
+
+  const activityFeed = [
+    ...recentMergedPRs.map((pr) => ({
+      text: `@${pr.authorLogin} merged a PR in ${pr.project.name}`,
+      at: pr.mergedAt ?? pr.createdAt,
+    })),
+    ...recentUsers.map((user) => ({
+      text: `${user.name} joined the platform`,
+      at: user.createdAt,
+    })),
+    ...recentCertificates.map((certificate) => ({
+      text: `${certificate.user.name} earned "${certificate.title}"`,
+      at: certificate.issueDate,
+    })),
+  ]
+    .sort((a, b) => b.at.getTime() - a.at.getTime())
+    .slice(0, 6);
+
   const stats = [
     { icon: GitBranch, label: "Projects tracked", value: projectCount },
     { icon: Users, label: "Contributors recognized", value: allContributors.length },
@@ -77,42 +126,96 @@ export default async function Home() {
               render={<Link href="/mentorship">Find a Mentor</Link>}
             />
           </div>
-        </div>
-      </section>
 
-      <section className="border-b">
-        <div className="mx-auto grid max-w-6xl grid-cols-2 gap-6 px-4 py-10 sm:px-6 md:grid-cols-4">
-          {stats.map((stat) => (
-            <div key={stat.label} className="flex flex-col items-center gap-1 text-center">
-              <stat.icon className="mb-1 size-5 text-navy dark:text-yellow" />
-              <span className="text-2xl font-semibold tracking-tight">{stat.value}</span>
-              <span className="text-xs text-muted-foreground">{stat.label}</span>
+          {activityFeed.length > 0 && (
+            <div className="mt-4 flex max-w-full items-center gap-2 rounded-full border bg-background/60 py-1.5 pr-4 pl-2 text-xs text-muted-foreground">
+              <span className="flex shrink-0 items-center gap-1.5 font-medium text-navy dark:text-yellow">
+                <span className="relative flex size-2">
+                  <span className="absolute inline-flex size-full animate-ping rounded-full bg-navy/60 dark:bg-yellow/60" />
+                  <span className="relative inline-flex size-2 rounded-full bg-navy dark:bg-yellow" />
+                </span>
+                Live
+              </span>
+              <span className="max-w-md truncate sm:max-w-lg">
+                {activityFeed.map((item, index) => (
+                  <span key={`${item.text}-${index}`}>
+                    {index > 0 && " · "}
+                    {item.text} ({timeAgo(item.at)})
+                  </span>
+                ))}
+              </span>
             </div>
-          ))}
+          )}
         </div>
       </section>
 
-      <section className="mx-auto grid max-w-6xl gap-6 px-4 py-16 sm:px-6 md:grid-cols-3">
-        <div className="flex flex-col items-center gap-2 text-center">
-          <GitBranch className="size-8 text-navy dark:text-yellow" />
-          <h2 className="font-medium">Contribute to real projects</h2>
-          <p className="text-sm text-muted-foreground">
-            Track issues, pull requests, and reviews across every project in the ecosystem.
-          </p>
+      <section className="mx-auto max-w-6xl px-4 py-10 sm:px-6">
+        <Card>
+          <CardContent className="grid grid-cols-2 divide-y sm:divide-x sm:divide-y-0 md:grid-cols-4">
+            {stats.map((stat) => (
+              <div key={stat.label} className="flex flex-col items-center gap-2 px-4 py-4 text-center">
+                <span className="flex size-9 items-center justify-center rounded-lg bg-accent/15 text-navy dark:text-yellow">
+                  <stat.icon className="size-5" />
+                </span>
+                <span className="text-2xl font-bold tracking-tight text-navy dark:text-yellow">{stat.value}</span>
+                <span className="text-xs tracking-wide text-muted-foreground uppercase">{stat.label}</span>
+              </div>
+            ))}
+          </CardContent>
+        </Card>
+      </section>
+
+      <section className="mx-auto max-w-6xl px-4 py-16 sm:px-6">
+        <div className="mb-10 flex flex-col items-center gap-2 text-center">
+          <h2 className="text-2xl font-semibold sm:text-3xl">Why Olgax?</h2>
+          <p className="text-muted-foreground">The pillars of our open-source ecosystem.</p>
         </div>
-        <div className="flex flex-col items-center gap-2 text-center">
-          <GraduationCap className="size-8 text-navy dark:text-yellow" />
-          <h2 className="font-medium">Learn with mentorship</h2>
-          <p className="text-sm text-muted-foreground">
-            Get matched with mentors, complete guided missions, and graduate with a certificate.
-          </p>
-        </div>
-        <div className="flex flex-col items-center gap-2 text-center">
-          <Trophy className="size-8 text-navy dark:text-yellow" />
-          <h2 className="font-medium">Earn recognition</h2>
-          <p className="text-sm text-muted-foreground">
-            Level up, earn badges, and climb the leaderboards as you contribute.
-          </p>
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          <Card>
+            <CardContent className="flex flex-col items-center gap-2 py-6 text-center">
+              <span className="mb-1 flex size-11 items-center justify-center rounded-lg bg-accent/15 text-navy dark:text-yellow">
+                <GitBranch className="size-5" />
+              </span>
+              <h3 className="font-medium">Contribute to real projects</h3>
+              <p className="text-sm text-muted-foreground">
+                Track issues, pull requests, and reviews across every project in the ecosystem. Make a
+                tangible impact.
+              </p>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardContent className="flex flex-col items-center gap-2 py-6 text-center">
+              <span className="mb-1 flex size-11 items-center justify-center rounded-lg bg-accent/15 text-navy dark:text-yellow">
+                <GraduationCap className="size-5" />
+              </span>
+              <h3 className="font-medium">Learn with mentorship</h3>
+              <p className="text-sm text-muted-foreground">
+                Get matched with mentors, complete guided missions, and graduate with a certificate.
+              </p>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardContent className="flex flex-col items-center gap-2 py-6 text-center">
+              <span className="mb-1 flex size-11 items-center justify-center rounded-lg bg-accent/15 text-navy dark:text-yellow">
+                <Trophy className="size-5" />
+              </span>
+              <h3 className="font-medium">Earn recognition</h3>
+              <p className="text-sm text-muted-foreground">
+                Level up, earn badges, and climb the leaderboards as you contribute.
+              </p>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardContent className="flex flex-col items-center gap-2 py-6 text-center">
+              <span className="mb-1 flex size-11 items-center justify-center rounded-lg bg-accent/15 text-navy dark:text-yellow">
+                <Handshake className="size-5" />
+              </span>
+              <h3 className="font-medium">Mentor others</h3>
+              <p className="text-sm text-muted-foreground">
+                Share your knowledge, guide newcomers, and earn your own Certified Mentor recognition.
+              </p>
+            </CardContent>
+          </Card>
         </div>
       </section>
 
@@ -146,10 +249,13 @@ export default async function Home() {
             </ul>
           </div>
           <div className="overflow-hidden rounded-xl bg-navy text-yellow ring-1 ring-foreground/10">
-            <div className="flex items-center gap-1.5 border-b border-white/10 px-4 py-2.5">
-              <span className="size-2.5 rounded-full bg-destructive/70" />
-              <span className="size-2.5 rounded-full bg-yellow/70" />
-              <span className="size-2.5 rounded-full bg-green-500/70" />
+            <div className="flex items-center justify-between gap-1.5 border-b border-white/10 px-4 py-2.5">
+              <div className="flex items-center gap-1.5">
+                <span className="size-2.5 rounded-full bg-destructive/70" />
+                <span className="size-2.5 rounded-full bg-yellow/70" />
+                <span className="size-2.5 rounded-full bg-green-500/70" />
+              </div>
+              <span className="text-xs font-medium text-yellow/80">Ready to build?</span>
             </div>
             <pre className="overflow-x-auto p-5 font-mono text-sm leading-relaxed">
               <code>
@@ -161,7 +267,12 @@ export default async function Home() {
       </section>
 
       <section className="mx-auto max-w-6xl px-4 py-16 sm:px-6">
-        <h2 className="mb-6 text-2xl font-semibold">Featured projects</h2>
+        <div className="mb-6 flex flex-wrap items-center justify-between gap-2">
+          <h2 className="text-2xl font-semibold">Featured projects</h2>
+          <Link href="/projects" className="text-sm text-navy hover:underline dark:text-yellow">
+            Browse all projects →
+          </Link>
+        </div>
         {projects.length === 0 ? (
           <p className="text-sm text-muted-foreground">
             No projects tracked yet. Run{" "}
@@ -169,16 +280,17 @@ export default async function Home() {
             add one.
           </p>
         ) : (
-          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          <div className="-mx-4 flex snap-x snap-mandatory gap-4 overflow-x-auto px-4 pb-2 sm:-mx-6 sm:px-6">
             {projects.map((project) => (
-              <ProjectCard
-                key={project.id}
-                name={project.name}
-                description={project.description ?? ""}
-                href={`/projects/${project.slug}`}
-                tags={project.primaryLanguage ? [project.primaryLanguage] : []}
-                stars={project.stargazersCount}
-              />
+              <div key={project.id} className="w-72 shrink-0 snap-start">
+                <ProjectCard
+                  name={project.name}
+                  description={project.description ?? ""}
+                  href={`/projects/${project.slug}`}
+                  tags={project.primaryLanguage ? [project.primaryLanguage] : []}
+                  stars={project.stargazersCount}
+                />
+              </div>
             ))}
           </div>
         )}
@@ -197,21 +309,36 @@ export default async function Home() {
         {topContributors.length === 0 ? (
           <p className="text-sm text-muted-foreground">No XP earned yet - be the first on the leaderboard.</p>
         ) : (
-          <div className="-mx-4 flex snap-x snap-mandatory gap-4 overflow-x-auto px-4 pb-2 sm:-mx-6 sm:px-6">
-            {topContributors.map((contributor) => (
-              <div key={contributor.githubUsername} className="w-64 shrink-0 snap-start">
-                <ContributorCard
-                  name={contributor.name ?? contributor.githubUsername}
-                  githubUsername={contributor.githubUsername}
-                  avatarUrl={contributor.image ?? undefined}
-                  role="Contributor"
-                  xp={contributor.xp}
-                  level={contributor.level}
-                  isRegistered={contributor.isRegistered}
-                />
-              </div>
-            ))}
-          </div>
+          <Card>
+            <CardContent className="grid divide-y p-0 sm:grid-cols-2 sm:divide-x sm:divide-y-0">
+              {topContributors.map((contributor) => (
+                <Link
+                  key={contributor.githubUsername}
+                  href={`/contributors/${contributor.githubUsername}`}
+                  className="flex items-center gap-3 px-4 py-3 hover:bg-muted/50"
+                >
+                  <Avatar size="sm">
+                    <AvatarImage
+                      src={contributor.image ?? `https://github.com/${contributor.githubUsername}.png`}
+                      alt={contributor.name ?? contributor.githubUsername}
+                    />
+                    <AvatarFallback>
+                      {(contributor.name ?? contributor.githubUsername).slice(0, 2).toUpperCase()}
+                    </AvatarFallback>
+                  </Avatar>
+                  <div className="flex flex-1 flex-col">
+                    <span className="font-medium">
+                      {contributor.name} (@{contributor.githubUsername})
+                    </span>
+                    <span className="text-xs text-muted-foreground">
+                      Level {contributor.level} · {contributor.xp} XP
+                      {!contributor.isRegistered && " · Hasn't joined yet"}
+                    </span>
+                  </div>
+                </Link>
+              ))}
+            </CardContent>
+          </Card>
         )}
       </section>
 
