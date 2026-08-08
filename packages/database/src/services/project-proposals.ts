@@ -5,6 +5,25 @@ export function proposeProject(proposerId: string, title: string, description: s
   return prisma.projectProposal.create({ data: { proposerId, title: title.trim(), description: description.trim() } });
 }
 
+/** Only the original proposer can edit a REJECTED proposal, and doing so sends it back to PENDING review. */
+export async function resubmitProposal(proposalId: string, proposerId: string, title: string, description: string) {
+  const proposal = await prisma.projectProposal.findUniqueOrThrow({ where: { id: proposalId } });
+  if (proposal.proposerId !== proposerId) throw new Error("You can only edit your own proposal.");
+  if (proposal.status !== "REJECTED") throw new Error("Only a rejected proposal can be edited and resubmitted.");
+
+  return prisma.projectProposal.update({
+    where: { id: proposalId },
+    data: {
+      title: title.trim(),
+      description: description.trim(),
+      status: "PENDING",
+      rejectionReason: null,
+      reviewerId: null,
+      reviewedAt: null,
+    },
+  });
+}
+
 export function listProposalsForUser(userId: string) {
   return prisma.projectProposal.findMany({ where: { proposerId: userId }, orderBy: { createdAt: "desc" } });
 }

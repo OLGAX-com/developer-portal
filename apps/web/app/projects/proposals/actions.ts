@@ -6,6 +6,7 @@ import { revalidatePath } from "next/cache";
 import { auth } from "@olgax/auth";
 import {
   proposeProject as proposeProjectService,
+  resubmitProposal as resubmitProposalService,
   addProposalComment as addProposalCommentService,
   joinProposalInterest as joinProposalInterestService,
   leaveProposalInterest as leaveProposalInterestService,
@@ -20,6 +21,18 @@ export async function proposeProject(formData: FormData) {
   if (!title.trim() || !description.trim()) throw new Error("Title and description are required.");
 
   await proposeProjectService(session.user.id, title, description);
+  revalidatePath("/projects/proposals");
+}
+
+export async function resubmitProposal(proposalId: string, formData: FormData) {
+  const session = await auth.api.getSession({ headers: await headers() });
+  if (!session) throw new Error("You must be signed in.");
+
+  const title = (formData.get("title") as string) ?? "";
+  const description = (formData.get("description") as string) ?? "";
+  if (!title.trim() || !description.trim()) throw new Error("Title and description are required.");
+
+  await resubmitProposalService(proposalId, session.user.id, title, description);
   revalidatePath("/projects/proposals");
 }
 

@@ -15,7 +15,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { proposeProject } from "./actions";
+import { proposeProject, resubmitProposal } from "./actions";
 
 const STATUS_VARIANT = {
   PENDING: "outline",
@@ -110,6 +110,35 @@ export default async function ProjectProposalsPage() {
                       <span className="font-medium">Reason: </span>
                       {proposal.rejectionReason}
                     </p>
+                  )}
+                  {proposal.status === "REJECTED" && (
+                    <details className="group">
+                      <summary className="cursor-pointer text-sm text-navy hover:underline dark:text-yellow">
+                        Edit &amp; resubmit
+                      </summary>
+                      <form
+                        action={resubmitProposal.bind(null, proposal.id)}
+                        className="mt-3 flex flex-col gap-3"
+                      >
+                        <div className="flex flex-col gap-1.5">
+                          <Label htmlFor={`title-${proposal.id}`}>Project title</Label>
+                          <Input id={`title-${proposal.id}`} name="title" required defaultValue={proposal.title} />
+                        </div>
+                        <div className="flex flex-col gap-1.5">
+                          <Label htmlFor={`description-${proposal.id}`}>Description</Label>
+                          <Textarea
+                            id={`description-${proposal.id}`}
+                            name="description"
+                            required
+                            rows={4}
+                            defaultValue={proposal.description}
+                          />
+                        </div>
+                        <Button type="submit" size="sm" className="w-fit">
+                          Resubmit for review
+                        </Button>
+                      </form>
+                    </details>
                   )}
                 </CardContent>
               </Card>
