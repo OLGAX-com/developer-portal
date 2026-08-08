@@ -6,12 +6,14 @@ import { revalidatePath } from "next/cache";
 import { auth } from "@olgax/auth";
 import {
   applyForMentorship as applyForMentorshipService,
+  broadcastMentorshipMessage as broadcastMentorshipMessageService,
   graduateMentorship as graduateMentorshipService,
   prisma,
   rateMentor as rateMentorService,
   requestMentorship as requestMentorshipService,
   respondToMentorship as respondToMentorshipService,
   saveMentor as saveMentorService,
+  scheduleGroupMentorshipSessions as scheduleGroupMentorshipSessionsService,
   scheduleMentorshipSession as scheduleMentorshipSessionService,
   sendMentorshipMessage as sendMentorshipMessageService,
   unsaveMentor as unsaveMentorService,
@@ -78,8 +80,37 @@ export async function scheduleSession(mentorshipId: string, formData: FormData) 
   const scheduledAt = new Date(String(formData.get("scheduledAt") ?? ""));
   if (Number.isNaN(scheduledAt.getTime())) throw new Error("Pick a valid date and time.");
   const notes = String(formData.get("notes") ?? "").trim() || undefined;
+  const meetingLink = String(formData.get("meetingLink") ?? "").trim() || undefined;
 
-  await scheduleMentorshipSessionService(mentorshipId, session.user.id, scheduledAt, notes);
+  await scheduleMentorshipSessionService(mentorshipId, session.user.id, scheduledAt, notes, meetingLink);
+  revalidatePath("/mentorship");
+}
+
+export async function scheduleGroupSession(formData: FormData) {
+  const session = await auth.api.getSession({ headers: await headers() });
+  if (!session) throw new Error("You must be signed in.");
+
+  const mentorshipIds = formData.getAll("mentorshipIds").map(String);
+  if (mentorshipIds.length === 0) throw new Error("Select at least one student.");
+
+  const scheduledAt = new Date(String(formData.get("scheduledAt") ?? ""));
+  if (Number.isNaN(scheduledAt.getTime())) throw new Error("Pick a valid date and time.");
+  const notes = String(formData.get("notes") ?? "").trim() || undefined;
+  const meetingLink = String(formData.get("meetingLink") ?? "").trim() || undefined;
+
+  await scheduleGroupMentorshipSessionsService(session.user.id, mentorshipIds, scheduledAt, notes, meetingLink);
+  revalidatePath("/mentorship");
+}
+
+export async function broadcastMessage(formData: FormData) {
+  const session = await auth.api.getSession({ headers: await headers() });
+  if (!session) throw new Error("You must be signed in.");
+
+  const mentorshipIds = formData.getAll("mentorshipIds").map(String);
+  if (mentorshipIds.length === 0) throw new Error("Select at least one student.");
+
+  const body = String(formData.get("body") ?? "");
+  await broadcastMentorshipMessageService(session.user.id, mentorshipIds, body);
   revalidatePath("/mentorship");
 }
 

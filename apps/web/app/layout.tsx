@@ -6,6 +6,7 @@ import { cn } from "@/lib/utils";
 import { ThemeProvider } from "@/components/theme-provider";
 import { SiteHeader } from "@/components/site-header";
 import { SiteFooter } from "@/components/site-footer";
+import { ChatWidget } from "@/components/chat-widget";
 import { syncStaleProjects, discoverNewProjectsForTrackedOwners } from "@olgax/github";
 
 const inter = Inter({
@@ -103,6 +104,7 @@ export default function RootLayout({
           <SiteHeader />
           <main className="flex flex-1 flex-col">{children}</main>
           <SiteFooter />
+          <ChatWidget />
         </ThemeProvider>
       </body>
     </html>

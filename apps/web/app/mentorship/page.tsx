@@ -1,6 +1,6 @@
 import { headers } from "next/headers";
 import Link from "next/link";
-import { Star, Bookmark, BookmarkCheck, Calendar, ChevronDown, MessageSquare } from "lucide-react";
+import { Star, Bookmark, BookmarkCheck, Calendar, ChevronDown, MessageSquare, Video } from "lucide-react";
 
 import { auth } from "@olgax/auth";
 import {
@@ -22,11 +22,13 @@ import { Textarea } from "@/components/ui/textarea";
 import {
   acceptMentorship,
   applyForMentorship,
+  broadcastMessage,
   declineMentorship,
   graduateMentorship,
   rateMentor,
   requestMentorship,
   saveMentor,
+  scheduleGroupSession,
   scheduleSession,
   sendMessage,
   unsaveMentor,
@@ -72,6 +74,7 @@ export default async function MentorshipPage() {
   const incomingRequests = session
     ? myMentorships.filter((mentorship) => mentorship.mentorId === session.user.id)
     : [];
+  const activeStudents = incomingRequests.filter((mentorship) => mentorship.status === "ACTIVE");
   const myMentorshipsAsStudent = session
     ? myMentorships.filter((mentorship) => mentorship.studentId === session.user.id)
     : [];
@@ -208,6 +211,16 @@ export default async function MentorshipPage() {
                                   </span>
                                   {mentorshipSession.notes && (
                                     <p className="text-xs text-muted-foreground">{mentorshipSession.notes}</p>
+                                  )}
+                                  {mentorshipSession.meetingLink && (
+                                    <p>
+                                      <a
+                                        href={mentorshipSession.meetingLink}
+                                        className="flex items-center gap-1 text-xs text-navy hover:underline dark:text-yellow"
+                                      >
+                                        <Video className="size-3" /> Join meeting
+                                      </a>
+                                    </p>
                                   )}
                                 </div>
                               </div>
@@ -399,6 +412,16 @@ export default async function MentorshipPage() {
                               {mentorshipSession.notes && (
                                 <p className="text-xs text-muted-foreground">{mentorshipSession.notes}</p>
                               )}
+                              {mentorshipSession.meetingLink && (
+                                <p>
+                                  <a
+                                    href={mentorshipSession.meetingLink}
+                                    className="flex items-center gap-1 text-xs text-navy hover:underline dark:text-yellow"
+                                  >
+                                    <Video className="size-3" /> Join meeting
+                                  </a>
+                                </p>
+                              )}
                             </div>
                           </div>
                         ))}
@@ -419,6 +442,7 @@ export default async function MentorshipPage() {
                             />
                           </div>
                           <Input name="notes" placeholder="Notes (optional)" className="w-48" />
+                          <Input name="meetingLink" type="url" placeholder="Meeting link (optional)" className="w-48" />
                           <Button type="submit" size="sm" variant="outline">
                             Add session
                           </Button>
@@ -437,6 +461,59 @@ export default async function MentorshipPage() {
                   </div>
                 </details>
               ))}
+          </div>
+        </section>
+      )}
+
+      {activeStudents.length > 1 && (
+        <section className="mb-10">
+          <h2 className="mb-3 text-xl font-semibold">Message or schedule for multiple students</h2>
+          <div className="grid gap-4 sm:grid-cols-2">
+            <Card>
+              <CardContent className="flex flex-col gap-3 py-4">
+                <p className="flex items-center gap-1.5 text-sm font-medium">
+                  <MessageSquare className="size-4" /> Broadcast a message
+                </p>
+                <form action={broadcastMessage} className="flex flex-col gap-2">
+                  <div className="flex flex-col gap-1.5">
+                    {activeStudents.map((mentorship) => (
+                      <label key={mentorship.id} className="flex items-center gap-2 text-sm">
+                        <input type="checkbox" name="mentorshipIds" value={mentorship.id} defaultChecked />
+                        {mentorship.student.name}
+                      </label>
+                    ))}
+                  </div>
+                  <Textarea name="body" required placeholder="Message to send to everyone selected..." rows={3} />
+                  <Button type="submit" size="sm" className="w-fit">
+                    Send to selected
+                  </Button>
+                </form>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardContent className="flex flex-col gap-3 py-4">
+                <p className="flex items-center gap-1.5 text-sm font-medium">
+                  <Calendar className="size-4" /> Schedule a group session
+                </p>
+                <form action={scheduleGroupSession} className="flex flex-col gap-2">
+                  <div className="flex flex-col gap-1.5">
+                    {activeStudents.map((mentorship) => (
+                      <label key={mentorship.id} className="flex items-center gap-2 text-sm">
+                        <input type="checkbox" name="mentorshipIds" value={mentorship.id} defaultChecked />
+                        {mentorship.student.name}
+                      </label>
+                    ))}
+                  </div>
+                  <Input name="scheduledAt" type="datetime-local" required />
+                  <Input name="notes" placeholder="Notes (optional)" />
+                  <Input name="meetingLink" type="url" placeholder="Meeting link (optional)" />
+                  <Button type="submit" size="sm" className="w-fit">
+                    Schedule for selected
+                  </Button>
+                </form>
+              </CardContent>
+            </Card>
           </div>
         </section>
       )}

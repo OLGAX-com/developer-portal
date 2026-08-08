@@ -38,13 +38,41 @@ export function respondToMentorship(mentorshipId: string, status: "ACTIVE" | "DE
 }
 
 /** Only the mentor on a mentorship can schedule a session with their student. */
-export async function scheduleMentorshipSession(mentorshipId: string, mentorId: string, scheduledAt: Date, notes?: string) {
+export async function scheduleMentorshipSession(
+  mentorshipId: string,
+  mentorId: string,
+  scheduledAt: Date,
+  notes?: string,
+  meetingLink?: string,
+) {
   const mentorship = await prisma.mentorship.findUnique({ where: { id: mentorshipId } });
   if (!mentorship || mentorship.mentorId !== mentorId) {
     throw new Error("Only the assigned mentor can schedule a session.");
   }
 
-  return prisma.mentorshipSession.create({ data: { mentorshipId, scheduledAt, notes } });
+  return prisma.mentorshipSession.create({ data: { mentorshipId, scheduledAt, notes, meetingLink } });
+}
+
+/** Schedules the same session for every ACTIVE mentorship the mentor selects - skips any id that isn't theirs or isn't active. */
+export async function scheduleGroupMentorshipSessions(
+  mentorId: string,
+  mentorshipIds: string[],
+  scheduledAt: Date,
+  notes?: string,
+  meetingLink?: string,
+) {
+  const validMentorships = await prisma.mentorship.findMany({
+    where: { id: { in: mentorshipIds }, mentorId, status: "ACTIVE" },
+    select: { id: true },
+  });
+
+  if (validMentorships.length === 0) return 0;
+
+  await prisma.mentorshipSession.createMany({
+    data: validMentorships.map(({ id }) => ({ mentorshipId: id, scheduledAt, notes, meetingLink })),
+  });
+
+  return validMentorships.length;
 }
 
 export function listMentorshipSessions(mentorshipId: string) {
@@ -80,6 +108,55 @@ export async function sendMentorshipMessage(mentorshipId: string, senderId: stri
 
 export function listMentorshipMessages(mentorshipId: string) {
   return prisma.mentorshipMessage.findMany({ where: { mentorshipId }, orderBy: { createdAt: "asc" } });
+}
+
+/** Sends the same message to every ACTIVE/GRADUATED mentorship the mentor selects - skips any id that isn't theirs or isn't messageable. */
+export async function broadcastMentorshipMessage(mentorId: string, mentorshipIds: string[], body: string) {
+  const trimmed = body.trim();
+  if (!trimmed) throw new Error("Message can't be empty.");
+
+  const validMentorships = await prisma.mentorship.findMany({
+    where: { id: { in: mentorshipIds }, mentorId, status: { in: ["ACTIVE", "GRADUATED"] } },
+    select: { id: true },
+  });
+
+  for (const { id } of validMentorships) {
+    await sendMentorshipMessage(id, mentorId, trimmed);
+  }
+
+  return validMentorships.length;
+}
+
+/**
+ * Every conversation (as mentor or student) that can currently be messaged, newest activity
+ * first - powers the site-wide chat widget so a thread never has to be hunted down on
+ * /mentorship. "Needs your reply" is a real, computable signal: the other party sent the last
+ * message (there's no read-receipt tracking, so this is the closest honest proxy for unread).
+ */
+export async function listMessageableConversations(userId: string) {
+  const mentorships = await prisma.mentorship.findMany({
+    where: { OR: [{ mentorId: userId }, { studentId: userId }], status: { in: ["ACTIVE", "GRADUATED"] } },
+    include: {
+      mentor: true,
+      student: true,
+      messages: { orderBy: { createdAt: "asc" } },
+    },
+  });
+
+  return mentorships
+    .map((mentorship) => {
+      const otherParty = mentorship.mentorId === userId ? mentorship.student : mentorship.mentor;
+      const lastMessage = mentorship.messages[mentorship.messages.length - 1] ?? null;
+      return {
+        id: mentorship.id,
+        status: mentorship.status,
+        otherParty,
+        messages: mentorship.messages,
+        needsReply: lastMessage !== null && lastMessage.senderId !== userId,
+        lastActivityAt: lastMessage?.createdAt ?? mentorship.createdAt,
+      };
+    })
+    .sort((a, b) => b.lastActivityAt.getTime() - a.lastActivityAt.getTime());
 }
 
 export async function graduateMentorship(mentorshipId: string, feedback?: string) {
