@@ -36,3 +36,16 @@ USER nextjs
 EXPOSE 3000
 ENV PORT=3000
 CMD ["node", "apps/web/server.js"]
+
+# A "toolbox" image for running one-off ops commands against the production DB
+# (migrate:deploy, db:seed, promote) via Coolify's terminal/exec feature, since
+# the `runner` image above is a stripped standalone build with no Prisma CLI or
+# scripts in it. Deploy this as a second, separate app with build target "ops" -
+# it just idles, so open its terminal and run e.g.:
+#   pnpm --filter @olgax/database run migrate:deploy
+#   pnpm --filter @olgax/database run db:seed
+#   pnpm --filter @olgax/database run promote -- --email=you@example.com
+FROM builder AS ops
+WORKDIR /repo
+CMD ["tail", "-f", "/dev/null"]
+
