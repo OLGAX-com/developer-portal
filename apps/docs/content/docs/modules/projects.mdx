@@ -33,3 +33,22 @@ of every tracked project's docs.
 
 `ProjectMaintainer` links specific users to a project (distinct from the global `MAINTAINER`
 role) — set via `add-project --maintainer=email@example.com`.
+
+## Project Proposals
+
+Anyone signed in can propose a brand-new project at `/projects/proposals` (title + description).
+A proposal is **private** — visible only to the proposer and to platform `MAINTAINER`/
+`ADMINISTRATOR` users — until it's reviewed at `/projects/proposals/review`:
+
+- **Approve** — the proposal goes public on `/projects/proposals`, opening it up for comments
+  (`ProjectProposalComment`) and a "Join project" button (`ProjectProposalInterest`, one row per
+  user, idempotent) so contributors can team up before any code exists.
+- **Reject** — requires a reason, which the proposer sees on their own proposal (never shown
+  publicly).
+
+We deliberately don't automate creating the actual GitHub repository — that stays a manual
+maintainer action (`pnpm --filter @olgax/github run add-project`), consistent with "GitHub is the
+source of truth for code." Once that real `Project` exists, a maintainer links it to the approved
+proposal (`ProjectProposal.linkedProjectId`) from the review page, and the proposal page then
+points everyone to the live project.
+

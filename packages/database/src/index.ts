@@ -16,3 +16,4 @@ export * from "./services/task-claims";
 export * from "./services/task-comments";
 export * from "./services/users";
 export * from "./services/programs";
+export * from "./services/project-proposals";

@@ -52,7 +52,12 @@ export default async function ProjectsPage({
 
   return (
     <div className="mx-auto max-w-6xl px-4 py-16 sm:px-6">
-      <h1 className="mb-2 text-3xl font-semibold tracking-tight">Projects</h1>
+      <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
+        <h1 className="text-3xl font-semibold tracking-tight">Projects</h1>
+        <Link href="/projects/proposals" className="text-sm text-navy hover:underline dark:text-yellow">
+          Propose a project →
+        </Link>
+      </div>
       <p className="mb-8 text-muted-foreground">
         Every open-source project in the Olgax ecosystem, synced live from GitHub.
       </p>

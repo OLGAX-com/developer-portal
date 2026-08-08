@@ -47,6 +47,11 @@ model User {
   savedByStudents    SavedMentor[]       @relation("SavedByMentor")
   mentorshipMessages MentorshipMessage[]
   programEnrollments ProgramEnrollment[]
+
+  proposedProjects         ProjectProposal[]        @relation("ProposedProjects")
+  reviewedProjectProposals ProjectProposal[]        @relation("ReviewedProjectProposals")
+  projectProposalComments  ProjectProposalComment[]
+  projectProposalInterests ProjectProposalInterest[]
 }
 
 model Session {
@@ -128,6 +133,7 @@ model Project {
   issues      GithubIssue[]
   releases    GithubRelease[]
   maintainers ProjectMaintainer[]
+  proposals   ProjectProposal[]
 
   @@unique([githubOwner, githubRepo])
 }
@@ -201,6 +207,66 @@ model GithubRelease {
   project   Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
 
   @@unique([projectId, tagName])
+}
+
+// ---------------------------------------------------------------------------
+// Project Proposals: contributors propose new ecosystem projects; maintainers/
+// administrators review, approve (goes public, open for comments/interest), or
+// reject (with a reason shown to the proposer). GitHub remains the source of
+// truth for the actual repo - once one exists, a maintainer links it here.
+// ---------------------------------------------------------------------------
+
+enum ProjectProposalStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+model ProjectProposal {
+  id              String                @id @default(uuid())
+  title           String
+  description     String
+  status          ProjectProposalStatus @default(PENDING)
+  rejectionReason String?
+  createdAt       DateTime              @default(now())
+  updatedAt       DateTime              @updatedAt
+  reviewedAt      DateTime?
+
+  proposerId String
+  proposer   User    @relation("ProposedProjects", fields: [proposerId], references: [id], onDelete: Cascade)
+  reviewerId String?
+  reviewer   User?   @relation("ReviewedProjectProposals", fields: [reviewerId], references: [id], onDelete: SetNull)
+
+  // Set by a maintainer once the real GitHub repo exists and is tracked as a Project.
+  linkedProjectId String?
+  linkedProject   Project? @relation(fields: [linkedProjectId], references: [id], onDelete: SetNull)
+
+  comments  ProjectProposalComment[]
+  interests ProjectProposalInterest[]
+}
+
+model ProjectProposalComment {
+  id        String   @id @default(uuid())
+  body      String
+  createdAt DateTime @default(now())
+
+  proposalId String
+  proposal   ProjectProposal @relation(fields: [proposalId], references: [id], onDelete: Cascade)
+  authorId   String
+  author     User            @relation(fields: [authorId], references: [id], onDelete: Cascade)
+}
+
+// A contributor expressing interest in teaming up on an approved proposal ("Join project").
+model ProjectProposalInterest {
+  id        String   @id @default(uuid())
+  createdAt DateTime @default(now())
+
+  proposalId String
+  proposal   ProjectProposal @relation(fields: [proposalId], references: [id], onDelete: Cascade)
+  userId     String
+  user       User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([proposalId, userId])
 }
 
 // ---------------------------------------------------------------------------
