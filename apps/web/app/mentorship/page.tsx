@@ -1,6 +1,6 @@
 import { headers } from "next/headers";
 import Link from "next/link";
-import { Star, Bookmark, BookmarkCheck, Calendar, MessageSquare } from "lucide-react";
+import { Star, Bookmark, BookmarkCheck, Calendar, ChevronDown, MessageSquare } from "lucide-react";
 
 import { auth } from "@olgax/auth";
 import {
@@ -33,6 +33,15 @@ import {
 } from "./actions";
 
 type MentorshipMessage = Awaited<ReturnType<typeof listMentorshipMessages>>[number];
+
+/** A short "last message" line for the collapsed accordion row, so you don't have to open every thread to scan them. */
+function lastMessagePreview(messages: MentorshipMessage[] | undefined, currentUserId: string): string {
+  if (!messages || messages.length === 0) return "No messages yet";
+  const last = messages[messages.length - 1];
+  const prefix = last.senderId === currentUserId ? "You: " : "";
+  const body = last.body.length > 60 ? `${last.body.slice(0, 60)}\u2026` : last.body;
+  return `${prefix}${body}`;
+}
 
 export default async function MentorshipPage() {
   const session = await auth.api.getSession({ headers: await headers() });
@@ -117,11 +126,9 @@ export default async function MentorshipPage() {
         <section className="mb-10">
           <h2 className="mb-3 text-xl font-semibold">Your mentors</h2>
           <div className="flex flex-col gap-3">
-            {myMentorshipsAsStudent.map((mentorship) => {
-              const canRateThis =
-                mentorship.status === "GRADUATED" && !mentorship.mentorRating;
-
-              return (
+            {myMentorshipsAsStudent
+              .filter((mentorship) => mentorship.status === "PENDING")
+              .map((mentorship) => (
                 <Card key={mentorship.id}>
                   <CardContent className="flex flex-col gap-3 py-4">
                     <div className="flex flex-wrap items-start justify-between gap-3">
@@ -141,93 +148,123 @@ export default async function MentorshipPage() {
                       </div>
                       <Badge variant="outline">{mentorship.status.toLowerCase()}</Badge>
                     </div>
-
-                    {mentorship.status === "PENDING" && (
-                      <p className="text-sm text-muted-foreground">
-                        Waiting for {mentorship.mentor.name} to respond.
-                      </p>
-                    )}
-                    {(mentorship.status === "DECLINED" || mentorship.status === "CANCELLED") && (
-                      <p className="text-sm text-muted-foreground">
-                        This request was {mentorship.status.toLowerCase()}. You can send a new request from the
-                        mentors list below.
-                      </p>
-                    )}
-
-                    {mentorship.status === "ACTIVE" && (
-                      <div className="flex flex-col gap-2 border-t pt-3">
-                        <p className="flex items-center gap-1.5 text-xs font-medium text-muted-foreground">
-                          <Calendar className="size-3.5" /> Sessions
-                        </p>
-                        {(sessionsByMentorship.get(mentorship.id) ?? []).length === 0 ? (
-                          <p className="text-xs text-muted-foreground">No sessions scheduled yet.</p>
-                        ) : (
-                          (sessionsByMentorship.get(mentorship.id) ?? []).map((mentorshipSession) => (
-                            <div key={mentorshipSession.id} className="flex items-start gap-2 text-sm">
-                              <Calendar className="mt-0.5 size-3.5 shrink-0 text-navy dark:text-yellow" />
-                              <div>
-                                <span className="font-medium">
-                                  {mentorshipSession.scheduledAt.toLocaleString()}
-                                </span>
-                                {mentorshipSession.notes && (
-                                  <p className="text-xs text-muted-foreground">{mentorshipSession.notes}</p>
-                                )}
-                              </div>
-                            </div>
-                          ))
-                        )}
-                      </div>
-                    )}
-
-                    {mentorship.status === "GRADUATED" && (
-                      <div className="border-t pt-3">
-                        <p className="mb-2 text-xs text-muted-foreground">
-                          <Link href="/profile#certificates" className="underline">
-                            View your certificate
-                          </Link>
-                        </p>
-                        {canRateThis ? (
-                          <form action={rateMentor.bind(null, mentorship.id)} className="flex flex-col gap-2">
-                            <p className="text-xs text-muted-foreground">You graduated! Rate your mentor:</p>
-                            <select
-                              name="rating"
-                              required
-                              className="w-fit rounded-md border bg-background px-2 py-1 text-sm"
-                            >
-                              <option value="">Rating</option>
-                              <option value="5">5 - Excellent</option>
-                              <option value="4">4 - Great</option>
-                              <option value="3">3 - Good</option>
-                              <option value="2">2 - Fair</option>
-                              <option value="1">1 - Poor</option>
-                            </select>
-                            <Textarea name="review" placeholder="Optional review" rows={2} />
-                            <Button type="submit" size="sm" className="w-fit">
-                              Submit rating
-                            </Button>
-                          </form>
-                        ) : mentorship.mentorRating ? (
-                          <p className="flex items-center gap-1 text-xs text-muted-foreground">
-                            <Star className="size-3.5 fill-yellow text-yellow" /> You rated this mentor{" "}
-                            {mentorship.mentorRating}/5
-                            {mentorship.mentorReview ? ` – "${mentorship.mentorReview}"` : ""}
-                          </p>
-                        ) : null}
-                      </div>
-                    )}
-
-                    {(mentorship.status === "ACTIVE" || mentorship.status === "GRADUATED") && (
-                      <MessageThread
-                        mentorshipId={mentorship.id}
-                        messages={messagesByMentorship.get(mentorship.id) ?? []}
-                        currentUserId={session.user.id}
-                        otherPartyName={mentorship.mentor.name}
-                      />
-                    )}
+                    <p className="text-sm text-muted-foreground">Waiting for {mentorship.mentor.name} to respond.</p>
                   </CardContent>
                 </Card>
-              );
-            })}
+              ))}
+
+            {myMentorshipsAsStudent
+              .filter((mentorship) => mentorship.status !== "PENDING")
+              .map((mentorship) => {
+                const canRateThis = mentorship.status === "GRADUATED" && !mentorship.mentorRating;
+
+                return (
+                  <details
+                    key={mentorship.id}
+                    name="your-mentors"
+                    className="group rounded-xl bg-card text-sm ring-1 ring-foreground/10"
+                  >
+                    <summary className="flex cursor-pointer list-none items-center gap-3 px-4 py-3">
+                      <Avatar className="shrink-0">
+                        <AvatarImage src={mentorship.mentor.image ?? undefined} alt={mentorship.mentor.name} />
+                        <AvatarFallback>{mentorship.mentor.name.slice(0, 2).toUpperCase()}</AvatarFallback>
+                      </Avatar>
+                      <div className="min-w-0 flex-1">
+                        <div className="flex flex-wrap items-center gap-2">
+                          <span className="font-medium">{mentorship.mentor.name}</span>
+                          <Badge variant="outline">{mentorship.status.toLowerCase()}</Badge>
+                        </div>
+                        <p className="truncate text-xs text-muted-foreground">
+                          {mentorship.status === "ACTIVE" || mentorship.status === "GRADUATED"
+                            ? lastMessagePreview(messagesByMentorship.get(mentorship.id), session.user.id)
+                            : `This request was ${mentorship.status.toLowerCase()}.`}
+                        </p>
+                      </div>
+                      <ChevronDown className="size-4 shrink-0 text-muted-foreground transition-transform group-open:rotate-180" />
+                    </summary>
+
+                    <div className="flex flex-col gap-3 border-t px-4 py-4">
+                      {(mentorship.status === "DECLINED" || mentorship.status === "CANCELLED") && (
+                        <p className="text-sm text-muted-foreground">
+                          This request was {mentorship.status.toLowerCase()}. You can send a new request from the
+                          mentors list below.
+                        </p>
+                      )}
+
+                      {mentorship.status === "ACTIVE" && (
+                        <div className="flex flex-col gap-2">
+                          <p className="flex items-center gap-1.5 text-xs font-medium text-muted-foreground">
+                            <Calendar className="size-3.5" /> Sessions
+                          </p>
+                          {(sessionsByMentorship.get(mentorship.id) ?? []).length === 0 ? (
+                            <p className="text-xs text-muted-foreground">No sessions scheduled yet.</p>
+                          ) : (
+                            (sessionsByMentorship.get(mentorship.id) ?? []).map((mentorshipSession) => (
+                              <div key={mentorshipSession.id} className="flex items-start gap-2 text-sm">
+                                <Calendar className="mt-0.5 size-3.5 shrink-0 text-navy dark:text-yellow" />
+                                <div>
+                                  <span className="font-medium">
+                                    {mentorshipSession.scheduledAt.toLocaleString()}
+                                  </span>
+                                  {mentorshipSession.notes && (
+                                    <p className="text-xs text-muted-foreground">{mentorshipSession.notes}</p>
+                                  )}
+                                </div>
+                              </div>
+                            ))
+                          )}
+                        </div>
+                      )}
+
+                      {mentorship.status === "GRADUATED" && (
+                        <div>
+                          <p className="mb-2 text-xs text-muted-foreground">
+                            <Link href="/profile#certificates" className="underline">
+                              View your certificate
+                            </Link>
+                          </p>
+                          {canRateThis ? (
+                            <form action={rateMentor.bind(null, mentorship.id)} className="flex flex-col gap-2">
+                              <p className="text-xs text-muted-foreground">You graduated! Rate your mentor:</p>
+                              <select
+                                name="rating"
+                                required
+                                className="w-fit rounded-md border bg-background px-2 py-1 text-sm"
+                              >
+                                <option value="">Rating</option>
+                                <option value="5">5 - Excellent</option>
+                                <option value="4">4 - Great</option>
+                                <option value="3">3 - Good</option>
+                                <option value="2">2 - Fair</option>
+                                <option value="1">1 - Poor</option>
+                              </select>
+                              <Textarea name="review" placeholder="Optional review" rows={2} />
+                              <Button type="submit" size="sm" className="w-fit">
+                                Submit rating
+                              </Button>
+                            </form>
+                          ) : mentorship.mentorRating ? (
+                            <p className="flex items-center gap-1 text-xs text-muted-foreground">
+                              <Star className="size-3.5 fill-yellow text-yellow" /> You rated this mentor{" "}
+                              {mentorship.mentorRating}/5
+                              {mentorship.mentorReview ? ` – "${mentorship.mentorReview}"` : ""}
+                            </p>
+                          ) : null}
+                        </div>
+                      )}
+
+                      {(mentorship.status === "ACTIVE" || mentorship.status === "GRADUATED") && (
+                        <MessageThread
+                          mentorshipId={mentorship.id}
+                          messages={messagesByMentorship.get(mentorship.id) ?? []}
+                          currentUserId={session.user.id}
+                          otherPartyName={mentorship.mentor.name}
+                        />
+                      )}
+                    </div>
+                  </details>
+                );
+              })}
           </div>
         </section>
       )}
@@ -243,113 +280,163 @@ export default async function MentorshipPage() {
             )}
           </div>
           <div className="flex flex-col gap-3">
-            {incomingRequests.map((mentorship) => (
-              <Card key={mentorship.id}>
-                <CardContent className="flex flex-col gap-3 py-4">
-                  <div className="flex flex-wrap items-start justify-between gap-3">
-                    <div>
-                      <p className="font-medium">{mentorship.student.name}</p>
-                      <p className="text-sm text-muted-foreground">{mentorship.message ?? "No message"}</p>
-                      <p className="mt-1 text-xs text-muted-foreground">
-                        {[
-                          mentorship.student.profile?.university,
-                          mentorship.student.profile?.location,
-                          mentorship.student.profile?.age ? `${mentorship.student.profile.age} yrs` : null,
-                        ]
-                          .filter(Boolean)
-                          .join(" · ") || "No profile details shared"}
-                        {mentorship.student.profile?.linkedinUrl && (
-                          <>
-                            {" · "}
-                            <a href={mentorship.student.profile.linkedinUrl} className="underline">
-                              LinkedIn
-                            </a>
-                          </>
-                        )}
-                      </p>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <Badge variant="outline">{mentorship.status.toLowerCase()}</Badge>
-                      {mentorship.status === "PENDING" && (
-                        <>
-                          <form action={acceptMentorship.bind(null, mentorship.id)}>
-                            <Button type="submit" size="sm">
-                              Accept
-                            </Button>
-                          </form>
-                          <form action={declineMentorship.bind(null, mentorship.id)}>
-                            <Button type="submit" size="sm" variant="outline">
-                              Decline
-                            </Button>
-                          </form>
-                        </>
-                      )}
-                      {mentorship.status === "ACTIVE" && (
-                        <form action={graduateMentorship.bind(null, mentorship.id)}>
+            {incomingRequests
+              .filter((mentorship) => mentorship.status === "PENDING")
+              .map((mentorship) => (
+                <Card key={mentorship.id}>
+                  <CardContent className="flex flex-col gap-3 py-4">
+                    <div className="flex flex-wrap items-start justify-between gap-3">
+                      <div>
+                        <p className="font-medium">{mentorship.student.name}</p>
+                        <p className="text-sm text-muted-foreground">{mentorship.message ?? "No message"}</p>
+                        <p className="mt-1 text-xs text-muted-foreground">
+                          {[
+                            mentorship.student.profile?.university,
+                            mentorship.student.profile?.location,
+                            mentorship.student.profile?.age ? `${mentorship.student.profile.age} yrs` : null,
+                          ]
+                            .filter(Boolean)
+                            .join(" · ") || "No profile details shared"}
+                          {mentorship.student.profile?.linkedinUrl && (
+                            <>
+                              {" · "}
+                              <a href={mentorship.student.profile.linkedinUrl} className="underline">
+                                LinkedIn
+                              </a>
+                            </>
+                          )}
+                        </p>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <Badge variant="outline">{mentorship.status.toLowerCase()}</Badge>
+                        <form action={acceptMentorship.bind(null, mentorship.id)}>
                           <Button type="submit" size="sm">
-                            Graduate
+                            Accept
                           </Button>
                         </form>
-                      )}
+                        <form action={declineMentorship.bind(null, mentorship.id)}>
+                          <Button type="submit" size="sm" variant="outline">
+                            Decline
+                          </Button>
+                        </form>
+                      </div>
                     </div>
-                  </div>
+                  </CardContent>
+                </Card>
+              ))}
 
-                  {mentorship.status === "GRADUATED" && mentorship.mentorRating && (
-                    <p className="flex items-center gap-1 text-xs text-muted-foreground">
-                      <Star className="size-3.5 fill-yellow text-yellow" /> {mentorship.student.name} rated you{" "}
-                      {mentorship.mentorRating}/5
-                      {mentorship.mentorReview ? ` – "${mentorship.mentorReview}"` : ""}
-                    </p>
-                  )}
-
-                  {mentorship.status === "ACTIVE" && (
-                    <div className="flex flex-col gap-2 border-t pt-3">
-                      <p className="flex items-center gap-1.5 text-xs font-medium text-muted-foreground">
-                        <Calendar className="size-3.5" /> Sessions
+            {incomingRequests
+              .filter((mentorship) => mentorship.status !== "PENDING")
+              .map((mentorship) => (
+                <details
+                  key={mentorship.id}
+                  name="your-students"
+                  className="group rounded-xl bg-card text-sm ring-1 ring-foreground/10"
+                >
+                  <summary className="flex cursor-pointer list-none items-center gap-3 px-4 py-3">
+                    <Avatar className="shrink-0">
+                      <AvatarImage src={mentorship.student.image ?? undefined} alt={mentorship.student.name} />
+                      <AvatarFallback>{mentorship.student.name.slice(0, 2).toUpperCase()}</AvatarFallback>
+                    </Avatar>
+                    <div className="min-w-0 flex-1">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <span className="font-medium">{mentorship.student.name}</span>
+                        <Badge variant="outline">{mentorship.status.toLowerCase()}</Badge>
+                      </div>
+                      <p className="truncate text-xs text-muted-foreground">
+                        {mentorship.status === "ACTIVE" || mentorship.status === "GRADUATED"
+                          ? lastMessagePreview(messagesByMentorship.get(mentorship.id), mentorship.mentorId)
+                          : mentorship.message ?? "No message"}
                       </p>
-                      {(sessionsByMentorship.get(mentorship.id) ?? []).map((mentorshipSession) => (
-                        <div key={mentorshipSession.id} className="flex items-start gap-2 text-sm">
-                          <Calendar className="mt-0.5 size-3.5 shrink-0 text-navy dark:text-yellow" />
-                          <div>
-                            <span className="font-medium">{mentorshipSession.scheduledAt.toLocaleString()}</span>
-                            {mentorshipSession.notes && (
-                              <p className="text-xs text-muted-foreground">{mentorshipSession.notes}</p>
-                            )}
-                          </div>
-                        </div>
-                      ))}
-                      <form action={scheduleSession.bind(null, mentorship.id)} className="flex flex-wrap items-end gap-2">
-                        <div className="flex flex-col gap-1">
-                          <Label htmlFor={`scheduledAt-${mentorship.id}`} className="text-xs">
-                            Schedule a session
-                          </Label>
-                          <Input
-                            id={`scheduledAt-${mentorship.id}`}
-                            name="scheduledAt"
-                            type="datetime-local"
-                            required
-                            className="w-fit"
-                          />
-                        </div>
-                        <Input name="notes" placeholder="Notes (optional)" className="w-48" />
-                        <Button type="submit" size="sm" variant="outline">
-                          Add session
-                        </Button>
-                      </form>
                     </div>
-                  )}
+                    <ChevronDown className="size-4 shrink-0 text-muted-foreground transition-transform group-open:rotate-180" />
+                  </summary>
 
-                  {(mentorship.status === "ACTIVE" || mentorship.status === "GRADUATED") && (
-                    <MessageThread
-                      mentorshipId={mentorship.id}
-                      messages={messagesByMentorship.get(mentorship.id) ?? []}
-                      currentUserId={mentorship.mentorId}
-                      otherPartyName={mentorship.student.name}
-                    />
-                  )}
-                </CardContent>
-              </Card>
-            ))}
+                  <div className="flex flex-col gap-3 border-t px-4 py-4">
+                    <p className="text-xs text-muted-foreground">
+                      {[
+                        mentorship.student.profile?.university,
+                        mentorship.student.profile?.location,
+                        mentorship.student.profile?.age ? `${mentorship.student.profile.age} yrs` : null,
+                      ]
+                        .filter(Boolean)
+                        .join(" · ") || "No profile details shared"}
+                      {mentorship.student.profile?.linkedinUrl && (
+                        <>
+                          {" · "}
+                          <a href={mentorship.student.profile.linkedinUrl} className="underline">
+                            LinkedIn
+                          </a>
+                        </>
+                      )}
+                    </p>
+
+                    {mentorship.status === "GRADUATED" && mentorship.mentorRating && (
+                      <p className="flex items-center gap-1 text-xs text-muted-foreground">
+                        <Star className="size-3.5 fill-yellow text-yellow" /> {mentorship.student.name} rated you{" "}
+                        {mentorship.mentorRating}/5
+                        {mentorship.mentorReview ? ` – "${mentorship.mentorReview}"` : ""}
+                      </p>
+                    )}
+
+                    {mentorship.status === "ACTIVE" && (
+                      <div className="flex flex-col gap-2">
+                        <div className="flex items-center justify-between gap-2">
+                          <p className="flex items-center gap-1.5 text-xs font-medium text-muted-foreground">
+                            <Calendar className="size-3.5" /> Sessions
+                          </p>
+                          <form action={graduateMentorship.bind(null, mentorship.id)}>
+                            <Button type="submit" size="sm">
+                              Graduate
+                            </Button>
+                          </form>
+                        </div>
+                        {(sessionsByMentorship.get(mentorship.id) ?? []).map((mentorshipSession) => (
+                          <div key={mentorshipSession.id} className="flex items-start gap-2 text-sm">
+                            <Calendar className="mt-0.5 size-3.5 shrink-0 text-navy dark:text-yellow" />
+                            <div>
+                              <span className="font-medium">{mentorshipSession.scheduledAt.toLocaleString()}</span>
+                              {mentorshipSession.notes && (
+                                <p className="text-xs text-muted-foreground">{mentorshipSession.notes}</p>
+                              )}
+                            </div>
+                          </div>
+                        ))}
+                        <form
+                          action={scheduleSession.bind(null, mentorship.id)}
+                          className="flex flex-wrap items-end gap-2"
+                        >
+                          <div className="flex flex-col gap-1">
+                            <Label htmlFor={`scheduledAt-${mentorship.id}`} className="text-xs">
+                              Schedule a session
+                            </Label>
+                            <Input
+                              id={`scheduledAt-${mentorship.id}`}
+                              name="scheduledAt"
+                              type="datetime-local"
+                              required
+                              className="w-fit"
+                            />
+                          </div>
+                          <Input name="notes" placeholder="Notes (optional)" className="w-48" />
+                          <Button type="submit" size="sm" variant="outline">
+                            Add session
+                          </Button>
+                        </form>
+                      </div>
+                    )}
+
+                    {(mentorship.status === "ACTIVE" || mentorship.status === "GRADUATED") && (
+                      <MessageThread
+                        mentorshipId={mentorship.id}
+                        messages={messagesByMentorship.get(mentorship.id) ?? []}
+                        currentUserId={mentorship.mentorId}
+                        otherPartyName={mentorship.student.name}
+                      />
+                    )}
+                  </div>
+                </details>
+              ))}
           </div>
         </section>
       )}
