@@ -19,7 +19,7 @@ export default async function Image() {
           fontFamily: "sans-serif",
         }}
       >
-        <div style={{ fontSize: 72, fontWeight: 700, letterSpacing: -2 }}>Olgax</div>
+        <div style={{ fontSize: 56, fontWeight: 700, letterSpacing: -2 }}>Olgax Developer Portal</div>
         <div style={{ fontSize: 32, color: "#ffffff", marginTop: 16, maxWidth: 800, textAlign: "center" }}>
           Learn. Build. Mentor. Grow the open-source way.
         </div>

@@ -27,23 +27,13 @@ export function UserMenu() {
 
   if (!session) {
     return (
-      <DropdownMenu>
-        <DropdownMenuTrigger className={cn(buttonVariants({ variant: "outline" }))}>
-          Sign in
-        </DropdownMenuTrigger>
-        <DropdownMenuContent align="end">
-          <DropdownMenuItem
-            onClick={() => signIn.social({ provider: "github", callbackURL: "/" })}
-          >
-            Continue with GitHub
-          </DropdownMenuItem>
-          <DropdownMenuItem
-            onClick={() => signIn.social({ provider: "google", callbackURL: "/" })}
-          >
-            Continue with Google
-          </DropdownMenuItem>
-        </DropdownMenuContent>
-      </DropdownMenu>
+      <button
+        type="button"
+        onClick={() => signIn.social({ provider: "github", callbackURL: "/" })}
+        className={cn(buttonVariants({ variant: "outline" }))}
+      >
+        Sign in with GitHub
+      </button>
     );
   }
 

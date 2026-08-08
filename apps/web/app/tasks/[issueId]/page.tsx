@@ -29,7 +29,7 @@ export default async function TaskDetailPage({
   const isClaimedByMe = session && activeClaim?.userId === session.user.id;
 
   return (
-    <div className="mx-auto max-w-3xl px-4 py-16 sm:px-6">
+    <div className="mx-auto max-w-4xl px-4 py-16 sm:px-6">
       <Link href="/tasks" className="mb-4 inline-block text-sm text-muted-foreground hover:underline">
         &larr; Task Board
       </Link>

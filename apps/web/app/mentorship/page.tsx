@@ -81,7 +81,7 @@ export default async function MentorshipPage() {
   const isAlreadyMentor = currentUser && currentUser.role !== "VISITOR" && currentUser.role !== "CONTRIBUTOR";
 
   return (
-    <div className="mx-auto max-w-4xl px-4 py-16 sm:px-6">
+    <div className="mx-auto max-w-6xl px-4 py-16 sm:px-6">
       <h1 className="mb-2 text-3xl font-semibold tracking-tight">Mentorship</h1>
       <p className="mb-8 text-muted-foreground">
         Find a mentor, request guidance, and track your mentorship progress.

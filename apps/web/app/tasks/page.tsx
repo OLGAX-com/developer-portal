@@ -55,7 +55,7 @@ export default async function TasksPage({
   const activeFilters = Boolean(projectSlug) || Boolean(tech) || gfi === "1";
 
   return (
-    <div className="mx-auto max-w-4xl px-4 py-16 sm:px-6">
+    <div className="mx-auto max-w-6xl px-4 py-16 sm:px-6">
       <h1 className="mb-2 text-3xl font-semibold tracking-tight">Task Board</h1>
       <p className="mb-6 text-muted-foreground">
         Open issues across every tracked project. Claim one to let others know you&apos;re working

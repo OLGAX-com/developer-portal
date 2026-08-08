@@ -41,9 +41,9 @@ export default async function LeaderboardPage({
   const universityEntries = view === "university" ? await getUniversityLeaderboard() : null;
 
   return (
-    <div className="mx-auto max-w-3xl px-4 py-16 sm:px-6">
+    <div className="mx-auto max-w-6xl px-4 py-16 sm:px-6">
       <h1 className="mb-2 text-3xl font-semibold tracking-tight">Leaderboard</h1>
-      <p className="mb-6 text-muted-foreground">Top contributors across the Olgax ecosystem.</p>
+      <p className="mb-6 text-muted-foreground">Top contributors across the Olgax Developer Portal ecosystem.</p>
 
       <div className="mb-6 flex gap-2">
         {VIEWS.map((v) => (

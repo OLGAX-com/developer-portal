@@ -57,7 +57,7 @@ export default async function ProgramsPage() {
   });
 
   return (
-    <div className="mx-auto max-w-4xl px-4 py-16 sm:px-6">
+    <div className="mx-auto max-w-6xl px-4 py-16 sm:px-6">
       <h1 className="mb-2 text-3xl font-semibold tracking-tight">Certification Programs</h1>
       <p className="mb-8 text-muted-foreground">
         Structured, fixed-duration tracks - 3 months, 6 months, or a year - that turn real contribution
@@ -67,7 +67,7 @@ export default async function ProgramsPage() {
       {activeEnrollments.length > 0 && (
         <section className="mb-10">
           <h2 className="mb-3 text-xl font-semibold">Your programs</h2>
-          <div className="flex flex-col gap-4">
+          <div className="grid gap-4 sm:grid-cols-2">
             {activeEnrollments.map((enrollment) => (
               <ActiveProgramCard
                 key={enrollment.id}

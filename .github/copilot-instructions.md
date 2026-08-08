@@ -2,7 +2,7 @@
 
 ## Project Overview
 
-This repository contains the **Olgax Community Platform**, a modern open-source community and mentorship platform built around GitHub. This project itself opensource too.
+This repository contains the **Olgax Developer Portal**, a modern open-source community and mentorship platform built around GitHub. This project itself opensource too.
 
 The platform is **not simply a developer portal**.
 
@@ -134,7 +134,6 @@ Authentication
 
 - Better Auth (preferred) or Auth.js
 - GitHub OAuth
-- Google OAuth
 
 Infrastructure
 
@@ -375,7 +374,6 @@ Avoid duplicated data.
 Support
 
 - GitHub OAuth
-- Google OAuth
 - Email (future)
 
 Every authenticated user has one profile.
@@ -640,7 +638,7 @@ When generating code:
 
 # Long-Term Goal
 
-The Olgax Community Platform should become the central hub for the entire Olgax ecosystem.
+The Olgax Developer Portal should become the central hub for the entire Olgax ecosystem.
 
 It should support:
 

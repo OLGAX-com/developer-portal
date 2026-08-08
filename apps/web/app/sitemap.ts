@@ -2,7 +2,7 @@ import type { MetadataRoute } from "next";
 import { prisma } from "@olgax/database";
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
-  const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000";
+  const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? "https://developers.olgax.com";
   const projects = await prisma.project.findMany({ select: { slug: true, updatedAt: true } });
 
   const staticRoutes: MetadataRoute.Sitemap = [

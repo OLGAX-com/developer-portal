@@ -53,7 +53,7 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
   page.drawRectangle({ x: 0, y: 0, width: 842, height: 15, color: yellow });
 
   page.drawImage(logoImage, { x: 40, y: 470, width: 48, height: 48 });
-  page.drawText("OLGAX COMMUNITY PLATFORM", { x: 100, y: 495, size: 12, font: headingFont, color: navy });
+  page.drawText("OLGAX DEVELOPER PORTAL", { x: 100, y: 495, size: 12, font: headingFont, color: navy });
   page.drawText("Certificate of Achievement", { x: 100, y: 465, size: 26, font: headingFont, color: navy });
 
   page.drawText("This certifies that", { x: 40, y: 415, size: 11, font: bodyFont, color: gray });

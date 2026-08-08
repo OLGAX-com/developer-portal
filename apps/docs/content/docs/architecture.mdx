@@ -11,7 +11,7 @@ apps/
   docs/      This site — Fumadocs, MDX-in-git
 packages/
   database/  Prisma schema + client + all domain services (xp, badges, missions, ...)
-  auth/      Better Auth config (GitHub + Google OAuth), RBAC helper
+  auth/      Better Auth config (GitHub OAuth), RBAC helper
   github/    GitHub sync (Octokit), webhook handling, README/contributor fetching
 tooling/
   typescript/base.json   shared tsconfig
@@ -24,7 +24,7 @@ Prisma ORM · PostgreSQL · Better Auth · Octokit.
 
 ## How data flows
 
-1. **Auth**: Better Auth handles GitHub/Google sign-in. A `databaseHooks` hook creates a
+1. **Auth**: Better Auth handles GitHub sign-in. A `databaseHooks` hook creates a
    `Profile` row for every new user and captures their real GitHub login (`packages/auth`).
 2. **Sync**: `packages/github` pulls repo metadata, issues/PRs, reviews, and releases from
    GitHub into `Project` / `GithubIssue` / `GithubReview` / `GithubRelease`. Real-time updates

@@ -27,7 +27,7 @@ export default async function CertificatePage({
 
   if (!certificate) notFound();
 
-  const verifyUrl = `${process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000"}/certificates/${certificate.id}`;
+  const verifyUrl = `${process.env.NEXT_PUBLIC_APP_URL ?? "https://developers.olgax.com"}/certificates/${certificate.id}`;
   const qrDataUrl = await QRCode.toDataURL(verifyUrl, { margin: 1, width: 200 });
   const enrollment = certificate.programEnrollment;
   const program = enrollment?.program;
@@ -42,14 +42,14 @@ export default async function CertificatePage({
         <CardContent className="flex flex-col items-center gap-4 px-6 py-10 text-center sm:px-16">
           <Image
             src="/favicon_io-logo-light-bg/android-chrome-192x192.png"
-            alt="Olgax"
+            alt="Olgax Developer Portal"
             width={56}
             height={56}
             className="dark:hidden"
           />
           <Image
             src="/favicon_io-logo-dark-bg/android-chrome-192x192.png"
-            alt="Olgax"
+            alt="Olgax Developer Portal"
             width={56}
             height={56}
             className="hidden dark:block"
@@ -57,7 +57,7 @@ export default async function CertificatePage({
 
           <div>
             <p className="text-xs font-semibold tracking-widest text-muted-foreground uppercase">
-              Olgax Community Platform
+              Olgax Developer Portal
             </p>
             <div className="mt-1 flex items-center justify-center gap-1.5 text-navy dark:text-yellow">
               <CheckCircle2 className="size-4" />

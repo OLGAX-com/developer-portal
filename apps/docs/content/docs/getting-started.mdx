@@ -21,7 +21,6 @@ Fill in `apps/web/.env.local`:
 - `BETTER_AUTH_SECRET` — any random string (e.g. `openssl rand -base64 32`)
 - `GITHUB_CLIENT_ID` / `GITHUB_CLIENT_SECRET` — from a GitHub OAuth App with callback URL
   `http://localhost:3000/api/auth/callback/github`
-- `GOOGLE_CLIENT_ID` / `GOOGLE_CLIENT_SECRET` — optional, same pattern for Google
 - `GITHUB_SYNC_TOKEN` — optional personal access token, used server-side to sync tracked
   projects (works unauthenticated too, at a much lower GitHub rate limit)
 
@@ -47,7 +46,7 @@ pnpm dev:docs     # this docs site on :3001
 
 ## Managing accounts
 
-The first sign-in (GitHub or Google) auto-creates a `User` + `Profile` row with the default
+The first sign-in via GitHub auto-creates a `User` + `Profile` row with the default
 `CONTRIBUTOR` role.
 
 ```bash

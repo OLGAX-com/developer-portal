@@ -35,7 +35,7 @@ export default async function ContributorProfilePage({
           <div className="flex flex-1 flex-col gap-2 text-center sm:text-left">
             <div className="flex flex-wrap items-center justify-center gap-2 sm:justify-start">
               <h1 className="text-2xl font-semibold">{contributor.name}</h1>
-              {!contributor.isRegistered && <Badge variant="outline">Hasn&apos;t joined Olgax yet</Badge>}
+              {!contributor.isRegistered && <Badge variant="outline">Hasn&apos;t joined Olgax Developer Portal yet</Badge>}
             </div>
             <Link
               href={githubUrl}

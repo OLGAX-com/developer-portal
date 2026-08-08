@@ -10,7 +10,7 @@ export default async function MentorApplicationsAdminPage() {
   const applications = await listPendingMentorApplications();
 
   return (
-    <div className="mx-auto max-w-3xl px-4 py-16 sm:px-6">
+    <div className="mx-auto max-w-4xl px-4 py-16 sm:px-6">
       <Link href="/admin" className="mb-2 inline-block text-sm text-muted-foreground hover:underline">
         &larr; Admin
       </Link>

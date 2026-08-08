@@ -94,8 +94,8 @@ export default async function Home() {
           __html: JSON.stringify({
             "@context": "https://schema.org",
             "@type": "Organization",
-            name: "Olgax Community Platform",
-            url: process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000",
+            name: "Olgax Developer Portal",
+            url: process.env.NEXT_PUBLIC_APP_URL ?? "https://developers.olgax.com",
             description:
               "An open-source community and mentorship platform for contributors, mentors, and maintainers to learn, build, and grow together.",
             sameAs: [
@@ -112,9 +112,9 @@ export default async function Home() {
             <span className="text-navy dark:text-yellow">Grow the open-source way.</span>
           </h1>
           <p className="max-w-xl text-lg text-muted-foreground">
-            Olgax is a community and mentorship platform where contributors, mentors, and
+            Olgax Developer Portal is a community and mentorship platform where contributors, mentors, and
             maintainers collaborate on real open-source projects. GitHub is the source of truth for
-            code &mdash; Olgax is the source of truth for community. Track your merged pull requests,
+            code &mdash; Olgax Developer Portal is the source of truth for community. Track your merged pull requests,
             earn XP and certificates, and get matched with a mentor to grow faster.
           </p>
           <div className="flex flex-wrap items-center justify-center gap-3">
@@ -167,7 +167,7 @@ export default async function Home() {
 
       <section className="mx-auto max-w-6xl px-4 py-16 sm:px-6">
         <div className="mb-10 flex flex-col items-center gap-2 text-center">
-          <h2 className="text-2xl font-semibold sm:text-3xl">Why Olgax?</h2>
+          <h2 className="text-2xl font-semibold sm:text-3xl">Why Olgax Developer Portal?</h2>
           <p className="text-muted-foreground">The pillars of our open-source ecosystem.</p>
         </div>
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
@@ -226,7 +226,7 @@ export default async function Home() {
               Developer experience meets community first
             </h2>
             <p className="mb-6 text-muted-foreground">
-              Olgax is built by contributors, for contributors — clean UI, minimal setup, and
+              Olgax Developer Portal is built by contributors, for contributors — clean UI, minimal setup, and
               documentation that stays in sync with the real codebase.
             </p>
             <ul className="flex flex-col gap-3 text-sm">
@@ -244,7 +244,7 @@ export default async function Home() {
               </li>
               <li className="flex items-start gap-2">
                 <Check className="mt-0.5 size-4 shrink-0 text-navy dark:text-yellow" />
-                Open source itself — Olgax is a project you can contribute to too
+                Open source itself — Olgax Developer Portal is a project you can contribute to too
               </li>
             </ul>
           </div>

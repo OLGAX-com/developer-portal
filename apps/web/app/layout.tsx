@@ -15,10 +15,10 @@ const inter = Inter({
 });
 
 export const metadata: Metadata = {
-  metadataBase: new URL(process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000"),
+  metadataBase: new URL(process.env.NEXT_PUBLIC_APP_URL ?? "https://developers.olgax.com"),
   title: {
-    default: "Olgax Community Platform",
-    template: "%s | Olgax Community Platform",
+    default: "Olgax Developer Portal",
+    template: "%s | Olgax Developer Portal",
   },
   description:
     "An open-source community and mentorship platform for contributors, mentors, and maintainers to learn, build, and grow together.",
@@ -34,14 +34,14 @@ export const metadata: Metadata = {
   authors: [{ name: "Olgax" }],
   openGraph: {
     type: "website",
-    siteName: "Olgax Community Platform",
-    title: "Olgax Community Platform",
+    siteName: "Olgax Developer Portal",
+    title: "Olgax Developer Portal",
     description:
       "An open-source community and mentorship platform for contributors, mentors, and maintainers to learn, build, and grow together.",
   },
   twitter: {
     card: "summary_large_image",
-    title: "Olgax Community Platform",
+    title: "Olgax Developer Portal",
     description:
       "An open-source community and mentorship platform for contributors, mentors, and maintainers to learn, build, and grow together.",
   },

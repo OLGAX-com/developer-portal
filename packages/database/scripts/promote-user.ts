@@ -32,7 +32,7 @@ async function main() {
     })
     .catch((error: unknown) => {
       if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2025") {
-        throw new Error(`No user found with email "${email}". Sign in once via GitHub/Google first.`);
+        throw new Error(`No user found with email "${email}". Sign in once via GitHub first.`);
       }
       throw error;
     });

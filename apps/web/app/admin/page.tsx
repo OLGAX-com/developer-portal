@@ -13,7 +13,7 @@ export default async function AdminHomePage() {
   ]);
 
   return (
-    <div className="mx-auto max-w-3xl px-4 py-16 sm:px-6">
+    <div className="mx-auto max-w-4xl px-4 py-16 sm:px-6">
       <h1 className="mb-2 text-3xl font-semibold tracking-tight">Admin</h1>
       <p className="mb-8 text-muted-foreground">Platform administration tools.</p>
 

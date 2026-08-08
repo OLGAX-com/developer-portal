@@ -1,4 +1,4 @@
-# Olgax Community Platform
+# Olgax Developer Portal
 
 Open-source community and mentorship platform built around GitHub. See [.github/copilot-instructions.md](.github/copilot-instructions.md) for the full vision, and `apps/docs` for the user-facing documentation site.
 
@@ -7,7 +7,7 @@ Open-source community and mentorship platform built around GitHub. See [.github/
 - `apps/web` — the main Next.js app
 - `apps/docs` — platform documentation (Fumadocs, MDX-in-git)
 - `packages/database` — Prisma schema & client
-- `packages/auth` — Better Auth (GitHub + Google OAuth), RBAC helper
+- `packages/auth` — Better Auth (GitHub OAuth), RBAC helper
 - `packages/github` — GitHub sync (repos, issues/PRs, reviews, releases) + webhook handling
 
 ## Getting Started
@@ -45,12 +45,11 @@ Open-source community and mentorship platform built around GitHub. See [.github/
    pnpm dev:docs     # apps/docs
    ```
 
-## GitHub / Google OAuth setup
+## GitHub OAuth setup
 
-Create the OAuth apps and set these callback (redirect) URLs, then fill the client id/secret into `apps/web/.env.local`:
+Create the OAuth app and set this callback (redirect) URL, then fill the client id/secret into `apps/web/.env.local`:
 
 - GitHub ([github.com/settings/developers](https://github.com/settings/developers)): `http://localhost:3000/api/auth/callback/github`
-- Google ([console.cloud.google.com/apis/credentials](https://console.cloud.google.com/apis/credentials)): `http://localhost:3000/api/auth/callback/google`
 
 `BETTER_AUTH_SECRET` can be any random string, e.g. `openssl rand -base64 32`.
 
@@ -85,7 +84,7 @@ For real-time updates, add a webhook on the tracked repo pointing to `https://<y
 
 ## What's implemented
 
-- **Auth**: GitHub/Google OAuth (Better Auth), role-based access (Visitor/Contributor/Mentor/Maintainer/Administrator)
+- **Auth**: GitHub OAuth (Better Auth), role-based access (Visitor/Contributor/Mentor/Maintainer/Administrator)
 - **Contributor Module**: profile page with real XP/levels, badges, and contribution history pulled from synced GitHub activity
 - **Projects Module**: project listing/detail pages backed by `packages/github` sync; README and contributors are fetched live from GitHub, never duplicated
 - **Missions & Badges**: data-driven mission/badge definitions (`prisma/seed.ts`), auto-completed by matching a contributor's GitHub activity

@@ -9,7 +9,7 @@ async function main() {
   });
 
   if (users.length === 0) {
-    console.log("No users yet. Sign in once via GitHub/Google, or run `pnpm run db:seed`.");
+    console.log("No users yet. Sign in once via GitHub, or run `pnpm run db:seed`.");
     return;
   }
 

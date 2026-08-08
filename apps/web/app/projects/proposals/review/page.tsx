@@ -26,7 +26,7 @@ export default async function ProjectProposalReviewPage() {
   const unlinkedApproved = approvedProposals.filter((proposal) => !proposal.linkedProject);
 
   return (
-    <div className="mx-auto max-w-3xl px-4 py-16 sm:px-6">
+    <div className="mx-auto max-w-4xl px-4 py-16 sm:px-6">
       <Link href="/projects/proposals" className="mb-2 inline-block text-sm text-muted-foreground hover:underline">
         &larr; Proposals
       </Link>

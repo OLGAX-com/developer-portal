@@ -43,18 +43,18 @@ export async function SiteHeader() {
 
   return (
     <header className="sticky top-0 z-40 border-b bg-background/80 backdrop-blur">
-      <div className="mx-auto flex h-14 max-w-6xl items-center justify-between gap-4 px-4 sm:px-6">
-        <Link href="/" className="flex items-center gap-2 font-semibold">
+      <div className="mx-auto flex h-14 max-w-6xl items-center gap-4 px-4 sm:px-6">
+        <Link href="/" className="flex shrink-0 items-center gap-2 font-semibold whitespace-nowrap">
           <Image
             src="/favicon_io-logo-light-bg/android-chrome-192x192.png"
-            alt="Olgax"
+            alt="Olgax Developer Portal"
             width={28}
             height={28}
             className="dark:hidden"
           />
           <Image
             src="/favicon_io-logo-dark-bg/android-chrome-192x192.png"
-            alt="Olgax"
+            alt="Olgax Developer Portal"
             width={28}
             height={28}
             className="hidden dark:block"
@@ -62,19 +62,19 @@ export async function SiteHeader() {
           <span>Olgax</span>
         </Link>
 
-        <nav className="hidden items-center gap-6 text-sm font-medium md:flex">
+        <nav className="hidden min-w-0 flex-1 items-center gap-5 text-sm font-medium md:flex">
           {links.map((link) => (
             <Link
               key={link.href}
               href={link.href}
-              className="text-muted-foreground transition-colors hover:text-foreground"
+              className="shrink-0 text-nowrap text-muted-foreground transition-colors hover:text-foreground"
             >
               {link.label}
             </Link>
           ))}
         </nav>
 
-        <div className="flex items-center gap-2">
+        <div className="ml-auto flex shrink-0 items-center gap-2">
           <NotificationBell />
           <ThemeToggle />
           <UserMenu />

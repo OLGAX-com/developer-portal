@@ -50,7 +50,7 @@ export default async function ProjectPage({
   ]);
 
   return (
-    <div className="mx-auto max-w-4xl px-4 py-16 sm:px-6">
+    <div className="mx-auto max-w-6xl px-4 py-16 sm:px-6">
       <div id="overview" className="mb-6 flex flex-col gap-3 scroll-mt-28">
         <div className="flex flex-wrap items-center gap-3">
           <h1 className="text-3xl font-semibold tracking-tight">{project.name}</h1>
