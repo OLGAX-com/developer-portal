@@ -80,36 +80,10 @@ async function main() {
     });
   }
 
-  const admin = await prisma.user.upsert({
-    where: { email: "admin@olgax.dev" },
-    update: {},
-    create: {
-      name: "Olgax Admin",
-      email: "admin@olgax.dev",
-      emailVerified: true,
-      role: "ADMINISTRATOR",
-      profile: { create: { githubUsername: "olgax-admin" } },
-    },
-  });
-
-  const contributor = await prisma.user.upsert({
-    where: { email: "contributor@olgax.dev" },
-    update: {},
-    create: {
-      name: "Sample Contributor",
-      email: "contributor@olgax.dev",
-      emailVerified: true,
-      role: "CONTRIBUTOR",
-      profile: { create: { githubUsername: "sample-contributor", xp: 50, level: 2 } },
-    },
-  });
-
   console.log({
     badges: BADGES.length,
     missions: MISSIONS.length,
     programs: PROGRAMS.length,
-    admin: admin.email,
-    contributor: contributor.email,
   });
 }
 
