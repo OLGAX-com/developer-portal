@@ -1,69 +1,50 @@
-import { PrismaClient } from "@prisma/client";
+import { readFileSync } from "node:fs";
+import path from "node:path";
+import { fileURLToPath } from "node:url";
+import { PrismaClient, type MissionType, type ProgramTrack } from "@prisma/client";
 
 const prisma = new PrismaClient();
+const seedDataDir = path.join(path.dirname(fileURLToPath(import.meta.url)), "seed-data");
 
-// Data-driven badge & mission definitions - the platform's award/completion logic
-// (packages/database/src/services) never hardcodes a badge or mission by name.
-const BADGES = [
-  { slug: "first-pr", name: "First PR", description: "Merged your first pull request", icon: "git-pull-request" },
-  { slug: "top-reviewer", name: "Top Reviewer", description: "Reviewed multiple pull requests", icon: "message-square" },
-  { slug: "bug-hunter", name: "Bug Hunter", description: "Fixed a confirmed bug", icon: "bug" },
-  { slug: "documentation-hero", name: "Documentation Hero", description: "Improved project documentation", icon: "book-open" },
-  { slug: "community-helper", name: "Community Helper", description: "Helped others in discussions or issues", icon: "heart-handshake" },
-  { slug: "mentor", name: "Mentor", description: "Mentored a contributor to graduation", icon: "graduation-cap" },
-  { slug: "maintainer", name: "Maintainer", description: "Maintains a project in the Olgax ecosystem", icon: "shield" },
-] as const;
+function loadSeedData<T>(filename: string): T {
+  return JSON.parse(readFileSync(path.join(seedDataDir, filename), "utf-8")) as T;
+}
 
-const MISSIONS = [
-  {
-    slug: "ship-your-first-pr",
-    title: "Ship your first PR",
-    description: "Open and get a pull request merged in any tracked Olgax project.",
-    type: "FIRST_PR",
-    xpReward: 150,
-    badgeSlug: "first-pr",
-  },
-  {
-    slug: "write-the-docs",
-    title: "Write the docs",
-    description: "Improve documentation for a project you use.",
-    type: "DOCUMENTATION",
-    xpReward: 100,
-    badgeSlug: "documentation-hero",
-  },
-  {
-    slug: "squash-a-bug",
-    title: "Squash a bug",
-    description: "Get a bug-fix pull request merged.",
-    type: "BUG_FIX",
-    xpReward: 120,
-    badgeSlug: "bug-hunter",
-  },
-  {
-    slug: "add-test-coverage",
-    title: "Add test coverage",
-    description: "Get a testing-focused pull request merged.",
-    type: "TESTING",
-    xpReward: 100,
-    badgeSlug: null,
-  },
-  {
-    slug: "review-a-pull-request",
-    title: "Review a pull request",
-    description: "Leave a review on someone else's pull request.",
-    type: "CODE_REVIEW",
-    xpReward: 80,
-    badgeSlug: "top-reviewer",
-  },
-  {
-    slug: "help-the-community",
-    title: "Help the community",
-    description: "Answer a question or help a fellow contributor.",
-    type: "COMMUNITY_SUPPORT",
-    xpReward: 60,
-    badgeSlug: "community-helper",
-  },
-] as const;
+interface BadgeSeed {
+  slug: string;
+  name: string;
+  description: string;
+  icon: string;
+}
+
+interface MissionSeed {
+  slug: string;
+  title: string;
+  description: string;
+  type: MissionType;
+  xpReward: number;
+  badgeSlug: string | null;
+}
+
+interface ProgramSeed {
+  slug: string;
+  title: string;
+  description: string;
+  motto: string;
+  track: ProgramTrack;
+  durationMonths: number;
+  minMergedPRs: number;
+  minIssuesOpened: number;
+  minReviews: number;
+  certificateTitle: string;
+}
+
+// Data-driven badge, mission, and program definitions live as plain JSON in ./seed-data - see
+// that folder's README. The platform's award/completion logic (packages/database/src/services)
+// never hardcodes a badge, mission, or program by name.
+const BADGES = loadSeedData<BadgeSeed[]>("badges.json");
+const MISSIONS = loadSeedData<MissionSeed[]>("missions.json");
+const PROGRAMS = loadSeedData<ProgramSeed[]>("programs.json");
 
 async function main() {
   for (const badge of BADGES) {
@@ -91,6 +72,14 @@ async function main() {
     });
   }
 
+  for (const program of PROGRAMS) {
+    await prisma.program.upsert({
+      where: { slug: program.slug },
+      create: program,
+      update: program,
+    });
+  }
+
   const admin = await prisma.user.upsert({
     where: { email: "admin@olgax.dev" },
     update: {},
@@ -115,7 +104,13 @@ async function main() {
     },
   });
 
-  console.log({ badges: BADGES.length, missions: MISSIONS.length, admin: admin.email, contributor: contributor.email });
+  console.log({
+    badges: BADGES.length,
+    missions: MISSIONS.length,
+    programs: PROGRAMS.length,
+    admin: admin.email,
+    contributor: contributor.email,
+  });
 }
 
 main()

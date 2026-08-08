@@ -12,12 +12,24 @@ Every signed-in user has a `Profile` (one-to-one with `User`) holding `githubUse
 clear (100 for level 1→2, 200 for 2→3, and so on). `addXp(userId, amount)` increments XP and
 recalculates the level in one call — it's the only place level-up logic lives.
 
+XP comes from two sources:
+
+- **One-time mission milestones** (see [Missions & Badges](/docs/modules/missions-and-badges)) —
+  a lump sum awarded once per mission, regardless of how much activity you rack up afterward.
+- **Ongoing per-contribution XP** (`checkAndAwardActivityXp` in `activity-xp.ts`) — every merged
+  PR, opened issue, and code review earns XP every time, not just the first one. Each
+  `GithubIssue`/`GithubReview` row has an `xpAwarded` column that's set once XP has been counted
+  for it, so re-running the check never double-awards and the profile page can show the real XP
+  earned per item. Rates live in `xp.ts`: `XP_PER_MERGED_PR` (25), `XP_PER_ISSUE_OPENED` (10),
+  `XP_PER_REVIEW` (15).
+
 ## Contribution history
 
 The profile page (`/profile`) matches `Profile.githubUsername` against synced `GithubIssue`
 (issues/PRs authored) and `GithubReview` (reviews given) rows across every tracked project — no
-separate "activity feed" table to keep in sync.
+separate "activity feed" table to keep in sync. Each row shows its `xpAwarded` value directly.
 
 ## Badges
 
 See [Missions & Badges](/docs/modules/missions-and-badges).
+

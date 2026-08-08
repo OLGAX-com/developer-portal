@@ -23,6 +23,7 @@ const navLinks = [
   { href: "/tasks", label: "Task Board" },
   { href: "/mentorship", label: "Mentorship" },
   { href: "/missions", label: "Missions" },
+  { href: "/programs", label: "Programs" },
   { href: "/leaderboard", label: "Leaderboard" },
   { href: process.env.NEXT_PUBLIC_DOCS_URL ?? "/docs", label: "Docs" },
 ];

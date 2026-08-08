@@ -1,5 +1,7 @@
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
+import rehypeRaw from 'rehype-raw';
+import rehypeSanitize from 'rehype-sanitize';
 import { remarkHeading } from 'fumadocs-core/mdx-plugins';
 
 export interface MarkdownLinkBase {
@@ -29,6 +31,9 @@ export function ProjectDocContent({ content, linkBase }: { content: string; link
   return (
     <ReactMarkdown
       remarkPlugins={[remarkGfm, remarkHeading]}
+      // Raw HTML (e.g. `<div align="center">` logos, badges) is common in READMEs but untrusted -
+      // parse it (rehypeRaw) then strip anything dangerous (rehypeSanitize, GitHub-style schema).
+      rehypePlugins={[rehypeRaw, rehypeSanitize]}
       components={{
         a: ({ href, children, node: _node, ...rest }) => (
           <a href={href && isRelativeUrl(href) ? resolveRelativeUrl(href, linkBase, 'blob') : href} {...rest}>

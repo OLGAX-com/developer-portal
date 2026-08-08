@@ -7,6 +7,7 @@ export interface ProfileEditableFields {
   age?: number | null;
   location?: string | null;
   linkedinUrl?: string | null;
+  mentorAvailability?: string | null;
 }
 
 export function updateProfile(userId: string, data: ProfileEditableFields) {

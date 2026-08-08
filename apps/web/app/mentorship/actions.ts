@@ -8,8 +8,13 @@ import {
   applyForMentorship as applyForMentorshipService,
   graduateMentorship as graduateMentorshipService,
   prisma,
+  rateMentor as rateMentorService,
   requestMentorship as requestMentorshipService,
   respondToMentorship as respondToMentorshipService,
+  saveMentor as saveMentorService,
+  scheduleMentorshipSession as scheduleMentorshipSessionService,
+  sendMentorshipMessage as sendMentorshipMessageService,
+  unsaveMentor as unsaveMentorService,
 } from "@olgax/database";
 
 export async function requestMentorship(mentorId: string, formData: FormData) {
@@ -63,5 +68,53 @@ export async function graduateMentorship(mentorshipId: string) {
   await assertIsMentorOnMentorship(mentorshipId, session.user.id);
 
   await graduateMentorshipService(mentorshipId);
+  revalidatePath("/mentorship");
+}
+
+export async function scheduleSession(mentorshipId: string, formData: FormData) {
+  const session = await auth.api.getSession({ headers: await headers() });
+  if (!session) throw new Error("You must be signed in.");
+
+  const scheduledAt = new Date(String(formData.get("scheduledAt") ?? ""));
+  if (Number.isNaN(scheduledAt.getTime())) throw new Error("Pick a valid date and time.");
+  const notes = String(formData.get("notes") ?? "").trim() || undefined;
+
+  await scheduleMentorshipSessionService(mentorshipId, session.user.id, scheduledAt, notes);
+  revalidatePath("/mentorship");
+}
+
+export async function sendMessage(mentorshipId: string, formData: FormData) {
+  const session = await auth.api.getSession({ headers: await headers() });
+  if (!session) throw new Error("You must be signed in.");
+
+  const body = String(formData.get("body") ?? "");
+  await sendMentorshipMessageService(mentorshipId, session.user.id, body);
+  revalidatePath("/mentorship");
+}
+
+export async function rateMentor(mentorshipId: string, formData: FormData) {
+  const session = await auth.api.getSession({ headers: await headers() });
+  if (!session) throw new Error("You must be signed in.");
+
+  const rating = Number(formData.get("rating"));
+  const review = String(formData.get("review") ?? "").trim() || undefined;
+
+  await rateMentorService(mentorshipId, session.user.id, rating, review);
+  revalidatePath("/mentorship");
+}
+
+export async function saveMentor(mentorId: string) {
+  const session = await auth.api.getSession({ headers: await headers() });
+  if (!session) throw new Error("You must be signed in.");
+
+  await saveMentorService(session.user.id, mentorId);
+  revalidatePath("/mentorship");
+}
+
+export async function unsaveMentor(mentorId: string) {
+  const session = await auth.api.getSession({ headers: await headers() });
+  if (!session) throw new Error("You must be signed in.");
+
+  await unsaveMentorService(session.user.id, mentorId);
   revalidatePath("/mentorship");
 }

@@ -17,6 +17,7 @@ export async function updateProfile(formData: FormData) {
     university: (formData.get("university") as string) || null,
     location: (formData.get("location") as string) || null,
     linkedinUrl: (formData.get("linkedinUrl") as string) || null,
+    mentorAvailability: (formData.get("mentorAvailability") as string) || null,
     age: age ? Number(age) : null,
   });
 

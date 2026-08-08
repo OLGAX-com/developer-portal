@@ -1,5 +1,10 @@
 const XP_PER_LEVEL_STEP = 100;
 
+// Ongoing per-contribution rewards (as opposed to one-time mission milestones in missions.json).
+export const XP_PER_MERGED_PR = 25;
+export const XP_PER_ISSUE_OPENED = 10;
+export const XP_PER_REVIEW = 15;
+
 export interface LevelInfo {
   level: number;
   xpIntoLevel: number;

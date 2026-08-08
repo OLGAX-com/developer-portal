@@ -1,5 +1,7 @@
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
+import rehypeRaw from "rehype-raw";
+import rehypeSanitize from "rehype-sanitize";
 
 export interface MarkdownLinkBase {
   owner: string;
@@ -27,6 +29,9 @@ export function MarkdownContent({ content, linkBase }: { content: string; linkBa
     <div className="prose prose-neutral max-w-none dark:prose-invert prose-a:text-navy dark:prose-a:text-yellow">
       <ReactMarkdown
         remarkPlugins={[remarkGfm]}
+        // Raw HTML (e.g. `<div align="center">` logos, badges) is common in READMEs but untrusted -
+        // parse it (rehypeRaw) then strip anything dangerous (rehypeSanitize, GitHub-style schema).
+        rehypePlugins={[rehypeRaw, rehypeSanitize]}
         components={{
           // eslint-disable-next-line @typescript-eslint/no-unused-vars -- excluded so it isn't spread onto the DOM node
           a: ({ href, children, node: _node, ...rest }) => (

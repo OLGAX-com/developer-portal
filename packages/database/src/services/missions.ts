@@ -38,6 +38,11 @@ async function countActivityForMissionType(githubUsername: string, type: Mission
     case "COMMUNITY_SUPPORT":
       // No synced signal for this yet (would need Discussions sync); never auto-completes.
       return 0;
+    case "BUG_REPORT":
+      // Rewards manual QA: running the app and filing a real GitHub issue, not just merged code.
+      return prisma.githubIssue.count({
+        where: { authorLogin: githubUsername, isPullRequest: false },
+      });
   }
 }
 

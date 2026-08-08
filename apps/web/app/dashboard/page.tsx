@@ -4,7 +4,15 @@ import { redirect } from "next/navigation";
 import { CheckCircle2, Circle, MessageCircle, MessagesSquare } from "lucide-react";
 
 import { auth } from "@olgax/auth";
-import { checkAndCompleteMissions, listMissionsForUser, listOnboardingSteps, prisma } from "@olgax/database";
+import {
+  calculateLevel,
+  checkAndAwardActivityXp,
+  checkAndCompleteMissions,
+  getUserRank,
+  listMissionsForUser,
+  listOnboardingSteps,
+  prisma,
+} from "@olgax/database";
 import { Badge } from "@/components/ui/badge";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -86,6 +94,7 @@ export default async function DashboardPage({
   if (!session) redirect("/");
 
   await checkAndCompleteMissions(session.user.id).catch(() => null);
+  await checkAndAwardActivityXp(session.user.id).catch(() => null);
 
   const [profile, missions, onboardingSteps, { discussionCheck, discordCheck }] = await Promise.all([
     prisma.profile.findUnique({ where: { userId: session.user.id } }),
@@ -93,6 +102,23 @@ export default async function DashboardPage({
     listOnboardingSteps(session.user.id),
     searchParams,
   ]);
+
+  const [rank, mergedPullRequests, mentorshipCount] = await Promise.all([
+    getUserRank(session.user.id),
+    profile?.githubUsername
+      ? prisma.githubIssue.count({
+          where: { isPullRequest: true, isMerged: true, authorLogin: profile.githubUsername },
+        })
+      : 0,
+    prisma.mentorship.count({
+      where: {
+        OR: [{ mentorId: session.user.id }, { studentId: session.user.id }],
+        status: { in: ["ACTIVE", "GRADUATED"] },
+      },
+    }),
+  ]);
+
+  const { xpIntoLevel, xpToNextLevel } = calculateLevel(profile?.xp ?? 0);
 
   const doneKeys = new Set(onboardingSteps.map((step) => step.key));
   const firstPrMission = missions.find((mission) => mission.type === "FIRST_PR");
@@ -120,7 +146,43 @@ export default async function DashboardPage({
         </div>
       )}
 
-      <div className="mb-10 grid gap-4 sm:grid-cols-3">
+      <div className="mb-6 grid gap-4 sm:grid-cols-4">
+        <Card>
+          <CardContent className="py-4">
+            <p className="text-sm text-muted-foreground">Level</p>
+            <p className="mt-1 text-2xl font-semibold">{profile?.level ?? 1}</p>
+            <div className="mt-2 h-1.5 w-full overflow-hidden rounded-full bg-muted">
+              <div
+                className="h-full rounded-full bg-navy dark:bg-yellow"
+                style={{ width: `${xpToNextLevel > 0 ? Math.min(100, (xpIntoLevel / xpToNextLevel) * 100) : 0}%` }}
+              />
+            </div>
+            <p className="mt-1 text-xs text-muted-foreground">
+              {xpIntoLevel} / {xpToNextLevel} XP to next level
+            </p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="py-4">
+            <p className="text-sm text-muted-foreground">Rank</p>
+            <p className="mt-1 text-2xl font-semibold">{rank ? `#${rank}` : "—"}</p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="py-4">
+            <p className="text-sm text-muted-foreground">Pull Requests</p>
+            <p className="mt-1 text-2xl font-semibold">{mergedPullRequests}</p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="py-4">
+            <p className="text-sm text-muted-foreground">Mentorships</p>
+            <p className="mt-1 text-2xl font-semibold">{mentorshipCount}</p>
+          </CardContent>
+        </Card>
+      </div>
+
+      <div className="mb-10 grid gap-4 sm:grid-cols-2">
         <Card>
           <CardContent className="py-4">
             <p className="text-sm text-muted-foreground">Quick links</p>
@@ -154,14 +216,6 @@ export default async function DashboardPage({
                 <MessagesSquare className="size-3.5" /> GitHub Discussions
               </Link>
             </div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="py-4">
-            <p className="text-sm text-muted-foreground">Your progress</p>
-            <p className="mt-2 text-2xl font-semibold">
-              Level {profile?.level ?? 1} <Badge variant="secondary">{profile?.xp ?? 0} XP</Badge>
-            </p>
           </CardContent>
         </Card>
       </div>

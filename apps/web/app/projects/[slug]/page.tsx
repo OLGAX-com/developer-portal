@@ -25,11 +25,6 @@ export default async function ProjectPage({
   const project = await prisma.project.findUnique({
     where: { slug },
     include: {
-      issues: {
-        orderBy: { openedAt: "desc" },
-        take: 20,
-        include: { claims: { where: { releasedAt: null }, include: { user: true } } },
-      },
       releases: { orderBy: { publishedAt: "desc" } },
       maintainers: { include: { user: true } },
     },
@@ -37,18 +32,26 @@ export default async function ProjectPage({
 
   if (!project) notFound();
 
-  const [readme, contributors, docsPages] = await Promise.all([
+  const [readme, contributors, docsPages, openIssues, pullRequests] = await Promise.all([
     getReadme(project.githubOwner, project.githubRepo).catch(() => null),
     getContributors(project.githubOwner, project.githubRepo).catch(() => []),
     listDocsPages(project.githubOwner, project.githubRepo).catch(() => []),
+    prisma.githubIssue.findMany({
+      where: { projectId: project.id, isPullRequest: false, state: "open" },
+      orderBy: { openedAt: "desc" },
+      take: 10,
+      include: { claims: { where: { releasedAt: null }, include: { user: true } } },
+    }),
+    prisma.githubIssue.findMany({
+      where: { projectId: project.id, isPullRequest: true },
+      orderBy: { openedAt: "desc" },
+      take: 10,
+    }),
   ]);
-
-  const openIssues = project.issues.filter((issue) => !issue.isPullRequest);
-  const pullRequests = project.issues.filter((issue) => issue.isPullRequest);
 
   return (
     <div className="mx-auto max-w-4xl px-4 py-16 sm:px-6">
-      <div className="mb-8 flex flex-col gap-3">
+      <div id="overview" className="mb-6 flex flex-col gap-3 scroll-mt-28">
         <div className="flex flex-wrap items-center gap-3">
           <h1 className="text-3xl font-semibold tracking-tight">{project.name}</h1>
           <Link
@@ -72,8 +75,35 @@ export default async function ProjectPage({
         </div>
       </div>
 
+      <nav className="sticky top-14 z-30 -mx-4 mb-8 flex gap-1 overflow-x-auto border-b bg-background/90 px-4 py-2 backdrop-blur sm:-mx-6 sm:px-6">
+        <a href="#overview" className="shrink-0 rounded-md px-3 py-1.5 text-sm text-muted-foreground hover:bg-muted hover:text-foreground">
+          Overview
+        </a>
+        {project.maintainers.length > 0 && (
+          <a href="#maintainers" className="shrink-0 rounded-md px-3 py-1.5 text-sm text-muted-foreground hover:bg-muted hover:text-foreground">
+            Maintainers
+          </a>
+        )}
+        {contributors.length > 0 && (
+          <a href="#contributors" className="shrink-0 rounded-md px-3 py-1.5 text-sm text-muted-foreground hover:bg-muted hover:text-foreground">
+            Contributors
+          </a>
+        )}
+        {readme && (
+          <a href="#docs" className="shrink-0 rounded-md px-3 py-1.5 text-sm text-muted-foreground hover:bg-muted hover:text-foreground">
+            Docs
+          </a>
+        )}
+        <a href="#releases" className="shrink-0 rounded-md px-3 py-1.5 text-sm text-muted-foreground hover:bg-muted hover:text-foreground">
+          Releases
+        </a>
+        <a href="#issues" className="shrink-0 rounded-md px-3 py-1.5 text-sm text-muted-foreground hover:bg-muted hover:text-foreground">
+          Issues &amp; PRs
+        </a>
+      </nav>
+
       {project.maintainers.length > 0 && (
-        <section className="mb-10">
+        <section id="maintainers" className="mb-10 scroll-mt-28">
           <h2 className="mb-3 text-xl font-semibold">Maintainers</h2>
           <div className="flex flex-wrap gap-2">
             {project.maintainers.map(({ user }) => (
@@ -86,13 +116,13 @@ export default async function ProjectPage({
       )}
 
       {contributors.length > 0 && (
-        <section className="mb-10">
+        <section id="contributors" className="mb-10 scroll-mt-28">
           <h2 className="mb-3 text-xl font-semibold">Contributors</h2>
           <div className="flex flex-wrap gap-3">
             {contributors.map((contributor) => (
               <Link
                 key={contributor.login}
-                href={contributor.htmlUrl}
+                href={`/contributors/${contributor.login}`}
                 className="flex items-center gap-2 rounded-full border py-1 pr-3 pl-1 text-sm hover:bg-muted"
               >
                 <Image
@@ -103,6 +133,9 @@ export default async function ProjectPage({
                   className="rounded-full"
                 />
                 @{contributor.login}
+                <span className="text-xs text-muted-foreground">
+                  {contributor.contributions} commit{contributor.contributions === 1 ? "" : "s"}
+                </span>
               </Link>
             ))}
           </div>
@@ -110,7 +143,7 @@ export default async function ProjectPage({
       )}
 
       {readme && (
-        <section className="mb-10">
+        <section id="docs" className="mb-10 scroll-mt-28">
           <div className="mb-3 flex items-center justify-between gap-3">
             <h2 className="text-xl font-semibold">Documentation</h2>
             {docsPages.length > 0 && (
@@ -131,7 +164,7 @@ export default async function ProjectPage({
 
       <Separator className="mb-10" />
 
-      <section className="mb-10">
+      <section id="releases" className="mb-10 scroll-mt-28">
         <h2 className="mb-3 text-xl font-semibold">Releases</h2>
         {project.releases.length === 0 ? (
           <p className="text-sm text-muted-foreground">No releases yet.</p>
@@ -158,11 +191,23 @@ export default async function ProjectPage({
         )}
       </section>
 
-      <section>
-        <h2 className="mb-3 text-xl font-semibold">Issues &amp; pull requests</h2>
+      <section id="issues" className="scroll-mt-28">
+        <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
+          <h2 className="text-xl font-semibold">Issues &amp; pull requests</h2>
+          <Button
+            size="sm"
+            variant="outline"
+            nativeButton={false}
+            render={
+              <a href={`https://github.com/${project.githubOwner}/${project.githubRepo}/issues/new`} target="_blank" rel="noreferrer">
+                Found a bug? Run it, test it, report it
+              </a>
+            }
+          />
+        </div>
         <div className="grid gap-6 sm:grid-cols-2">
           <div>
-            <h3 className="mb-2 text-sm font-medium text-muted-foreground">Issues ({openIssues.length})</h3>
+            <h3 className="mb-2 text-sm font-medium text-muted-foreground">Open issues ({openIssues.length})</h3>
             <ul className="flex flex-col gap-2">
               {openIssues.map((issue) => {
                 const activeClaim = issue.claims[0];
@@ -204,7 +249,7 @@ export default async function ProjectPage({
           </div>
           <div>
             <h3 className="mb-2 text-sm font-medium text-muted-foreground">
-              Pull requests ({pullRequests.length})
+              Recent pull requests ({pullRequests.length})
             </h3>
             <ul className="flex flex-col gap-2">
               {pullRequests.map((pr) => (
@@ -213,6 +258,15 @@ export default async function ProjectPage({
                   <Link href={pr.url} className="text-sm hover:underline">
                     #{pr.number} {pr.title}
                   </Link>
+                  {pr.isMerged ? (
+                    <Badge variant="secondary" className="ml-auto">
+                      merged
+                    </Badge>
+                  ) : pr.state === "closed" ? (
+                    <Badge variant="outline" className="ml-auto">
+                      closed
+                    </Badge>
+                  ) : null}
                 </li>
               ))}
             </ul>

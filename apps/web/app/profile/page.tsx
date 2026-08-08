@@ -1,9 +1,9 @@
 import { headers } from "next/headers";
 import Link from "next/link";
-import { GitPullRequest, MessageSquare } from "lucide-react";
+import { Award, CircleDot, GitPullRequest, MessageSquare } from "lucide-react";
 
-import { auth } from "@olgax/auth";
-import { calculateLevel, checkAndCompleteMissions, listBadgesForUser, prisma } from "@olgax/database";
+import { auth, hasRole } from "@olgax/auth";
+import { calculateLevel, checkAndAwardActivityXp, checkAndCompleteMissions, listBadgesForUser, listCertificatesForUser, prisma } from "@olgax/database";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -29,11 +29,13 @@ export default async function ProfilePage() {
   }
 
   await checkAndCompleteMissions(session.user.id).catch(() => {});
+  await checkAndAwardActivityXp(session.user.id).catch(() => {});
 
-  const [user, profile, badges] = await Promise.all([
+  const [user, profile, badges, certificates] = await Promise.all([
     prisma.user.findUniqueOrThrow({ where: { id: session.user.id } }),
     prisma.profile.findUnique({ where: { userId: session.user.id } }),
     listBadgesForUser(session.user.id),
+    listCertificatesForUser(session.user.id),
   ]);
 
   const { level, xpIntoLevel, xpToNextLevel } = calculateLevel(profile?.xp ?? 0);
@@ -133,6 +135,17 @@ export default async function ProfilePage() {
                   defaultValue={profile?.linkedinUrl ?? ""}
                 />
               </div>
+              {hasRole(user.role, "MENTOR") && (
+                <div className="flex flex-col gap-1.5 sm:col-span-2">
+                  <Label htmlFor="mentorAvailability">Mentorship availability (optional)</Label>
+                  <Input
+                    id="mentorAvailability"
+                    name="mentorAvailability"
+                    placeholder="e.g. Available weekends"
+                    defaultValue={profile?.mentorAvailability ?? ""}
+                  />
+                </div>
+              )}
               <Button type="submit" className="w-fit">
                 Save
               </Button>
@@ -154,6 +167,34 @@ export default async function ProfilePage() {
         )}
       </section>
 
+      <section id="certificates" className="mb-10">
+        <h2 className="mb-3 text-xl font-semibold">Certificates</h2>
+        {certificates.length === 0 ? (
+          <p className="text-sm text-muted-foreground">
+            No certificates yet - graduate a mentorship or complete a certification program to earn one.
+          </p>
+        ) : (
+          <div className="grid gap-3 sm:grid-cols-2">
+            {certificates.map((certificate) => (
+              <Link key={certificate.id} href={`/certificates/${certificate.id}`}>
+                <Card className="h-full transition-colors hover:border-navy dark:hover:border-yellow">
+                  <CardContent className="flex items-start gap-3 py-4">
+                    <Award className="mt-0.5 size-5 shrink-0 text-navy dark:text-yellow" />
+                    <div>
+                      <p className="font-medium">{certificate.title}</p>
+                      <p className="text-xs text-muted-foreground">
+                        Issued {certificate.issueDate.toLocaleDateString()}
+                        {certificate.mentorName ? ` · Mentor: ${certificate.mentorName}` : ""}
+                      </p>
+                    </div>
+                  </CardContent>
+                </Card>
+              </Link>
+            ))}
+          </div>
+        )}
+      </section>
+
       <section>
         <h2 className="mb-3 text-xl font-semibold">Contribution history</h2>
         {!profile?.githubUsername ? (
@@ -165,15 +206,26 @@ export default async function ProfilePage() {
             {contributions.map((issue) => (
               <Card key={issue.id}>
                 <CardContent className="flex items-center gap-2 py-3 text-sm">
-                  <GitPullRequest className="size-4 shrink-0 text-muted-foreground" />
+                  {issue.isPullRequest ? (
+                    <GitPullRequest className="size-4 shrink-0 text-muted-foreground" />
+                  ) : (
+                    <CircleDot className="size-4 shrink-0 text-muted-foreground" />
+                  )}
                   <Link href={issue.url} className="hover:underline">
                     {issue.project.name} #{issue.number} - {issue.title}
                   </Link>
-                  {issue.isMerged && (
-                    <Badge variant="secondary" className="ml-auto">
-                      merged
-                    </Badge>
-                  )}
+                  <div className="ml-auto flex items-center gap-2">
+                    {issue.isPullRequest && (
+                      <Badge variant={issue.isMerged ? "secondary" : "outline"}>
+                        {issue.isMerged ? "merged" : "open - not yet merged"}
+                      </Badge>
+                    )}
+                    {issue.xpAwarded > 0 && (
+                      <Badge variant="outline" className="text-navy dark:text-yellow">
+                        +{issue.xpAwarded} XP
+                      </Badge>
+                    )}
+                  </div>
                 </CardContent>
               </Card>
             ))}
@@ -184,9 +236,14 @@ export default async function ProfilePage() {
                   <Link href={review.issue.url} className="hover:underline">
                     Reviewed {review.issue.project.name} #{review.issue.number}
                   </Link>
-                  <Badge variant="outline" className="ml-auto">
-                    {review.state.toLowerCase()}
-                  </Badge>
+                  <div className="ml-auto flex items-center gap-2">
+                    <Badge variant="outline">{review.state.toLowerCase()}</Badge>
+                    {review.xpAwarded > 0 && (
+                      <Badge variant="outline" className="text-navy dark:text-yellow">
+                        +{review.xpAwarded} XP
+                      </Badge>
+                    )}
+                  </div>
                 </CardContent>
               </Card>
             ))}

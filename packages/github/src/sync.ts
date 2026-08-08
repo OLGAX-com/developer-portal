@@ -43,6 +43,85 @@ export async function syncProject(owner: string, repo: string, options: SyncOpti
   });
 }
 
+/**
+ * Re-syncs only tracked projects whose data is older than `maxAgeMinutes`. Cheap to call often
+ * (e.g. once per page render via `after()`) - the DB check is fast, and it no-ops for anything
+ * already fresh, so it's safe to fire from many pages/requests without risking duplicate work.
+ */
+export async function syncStaleProjects(maxAgeMinutes = 5) {
+  const staleBefore = new Date(Date.now() - maxAgeMinutes * 60 * 1000);
+  const staleProjects = await prisma.project.findMany({
+    where: { OR: [{ lastSyncedAt: null }, { lastSyncedAt: { lt: staleBefore } }] },
+    select: { githubOwner: true, githubRepo: true },
+  });
+
+  for (const { githubOwner, githubRepo } of staleProjects) {
+    await syncProject(githubOwner, githubRepo).catch((error) => {
+      console.error(`Background sync failed for ${githubOwner}/${githubRepo}:`, error instanceof Error ? error.message : error);
+    });
+  }
+
+  return staleProjects.length;
+}
+
+/** Lists an account's public repos, trying the org endpoint first since most owners here are orgs. */
+async function listPublicRepos(client: GithubClient, owner: string) {
+  const repos: { name: string }[] = [];
+  try {
+    for await (const response of client.paginate.iterator(client.repos.listForOrg, {
+      org: owner,
+      type: "public",
+      per_page: 100,
+    })) {
+      repos.push(...response.data);
+    }
+  } catch {
+    for await (const response of client.paginate.iterator(client.repos.listForUser, {
+      username: owner,
+      type: "owner",
+      per_page: 100,
+    })) {
+      repos.push(...response.data);
+    }
+  }
+  return repos;
+}
+
+/**
+ * Auto-registers any new public repo created under an owner/org we already track at least one
+ * project from - so creating a new repo alongside existing tracked ones just shows up here,
+ * with no manual `add-project` step. Scoped to already-tracked owners rather than every GitHub
+ * account, so nothing gets tracked unless you've deliberately tracked something from that owner
+ * before.
+ */
+export async function discoverNewProjectsForTrackedOwners() {
+  const client = createGithubClient();
+  const trackedProjects = await prisma.project.findMany({ select: { githubOwner: true, githubRepo: true } });
+  const trackedOwners = [...new Set(trackedProjects.map((project) => project.githubOwner))];
+  const trackedSlugs = new Set(trackedProjects.map((project) => `${project.githubOwner}/${project.githubRepo}`));
+
+  const newlyTracked: string[] = [];
+  for (const owner of trackedOwners) {
+    const repos = await listPublicRepos(client, owner).catch((error) => {
+      console.error(`Failed to list repos for ${owner}:`, error instanceof Error ? error.message : error);
+      return [];
+    });
+
+    for (const repo of repos) {
+      if (trackedSlugs.has(`${owner}/${repo.name}`)) continue;
+      // Skip GitHub's special org-wide community-health repo - not a real showcase project.
+      if (repo.name === ".github") continue;
+
+      await syncProject(owner, repo.name, { client }).catch((error) => {
+        console.error(`Failed to auto-track ${owner}/${repo.name}:`, error instanceof Error ? error.message : error);
+      });
+      newlyTracked.push(`${owner}/${repo.name}`);
+    }
+  }
+
+  return newlyTracked;
+}
+
 export async function syncIssuesAndPullRequests(
   projectId: string,
   owner: string,

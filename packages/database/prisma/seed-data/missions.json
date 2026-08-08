@@ -1,0 +1,58 @@
+[
+  {
+    "slug": "ship-your-first-pr",
+    "title": "Ship your first PR",
+    "description": "Open and get a pull request merged in any tracked Olgax project.",
+    "type": "FIRST_PR",
+    "xpReward": 150,
+    "badgeSlug": "first-pr"
+  },
+  {
+    "slug": "write-the-docs",
+    "title": "Write the docs",
+    "description": "Improve documentation for a project you use.",
+    "type": "DOCUMENTATION",
+    "xpReward": 100,
+    "badgeSlug": "documentation-hero"
+  },
+  {
+    "slug": "squash-a-bug",
+    "title": "Squash a bug",
+    "description": "Get a bug-fix pull request merged.",
+    "type": "BUG_FIX",
+    "xpReward": 120,
+    "badgeSlug": "bug-hunter"
+  },
+  {
+    "slug": "add-test-coverage",
+    "title": "Add test coverage",
+    "description": "Get a testing-focused pull request merged.",
+    "type": "TESTING",
+    "xpReward": 100,
+    "badgeSlug": null
+  },
+  {
+    "slug": "review-a-pull-request",
+    "title": "Review a pull request",
+    "description": "Leave a review on someone else's pull request.",
+    "type": "CODE_REVIEW",
+    "xpReward": 80,
+    "badgeSlug": "top-reviewer"
+  },
+  {
+    "slug": "help-the-community",
+    "title": "Help the community",
+    "description": "Answer a question or help a fellow contributor.",
+    "type": "COMMUNITY_SUPPORT",
+    "xpReward": 60,
+    "badgeSlug": "community-helper"
+  },
+  {
+    "slug": "report-a-bug",
+    "title": "Report a bug",
+    "description": "Run a tracked project locally, test it out, and open a detailed GitHub issue for a real bug you find.",
+    "type": "BUG_REPORT",
+    "xpReward": 50,
+    "badgeSlug": "qa-champion"
+  }
+]

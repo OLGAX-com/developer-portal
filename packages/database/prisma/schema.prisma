@@ -43,6 +43,10 @@ model User {
   onboardingSteps    OnboardingStep[]
   taskClaims         TaskClaim[]
   taskComments       TaskComment[]
+  savedMentors       SavedMentor[]       @relation("SavedMentorsByUser")
+  savedByStudents    SavedMentor[]       @relation("SavedByMentor")
+  mentorshipMessages MentorshipMessage[]
+  programEnrollments ProgramEnrollment[]
 }
 
 model Session {
@@ -87,17 +91,18 @@ model Verification {
 
 // One profile per contributor; expands further in the Contributor module (Phase 4).
 model Profile {
-  id             String   @id @default(uuid())
-  githubUsername String?  @unique
-  bio            String?
-  university     String?
-  age            Int?
-  location       String?
-  linkedinUrl    String?
-  xp             Int      @default(0)
-  level          Int      @default(1)
-  createdAt      DateTime @default(now())
-  updatedAt      DateTime @updatedAt
+  id                 String   @id @default(uuid())
+  githubUsername     String?  @unique
+  bio                String?
+  university         String?
+  age                Int?
+  location           String?
+  linkedinUrl        String?
+  mentorAvailability String?
+  xp                 Int      @default(0)
+  level              Int      @default(1)
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
 
   userId String @unique
   user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
@@ -155,6 +160,9 @@ model GithubIssue {
   openedAt      DateTime
   closedAt      DateTime?
   mergedAt      DateTime?
+  // XP already awarded to the author for this item (0 = not yet counted). Kept per-row
+  // (not just a running total) so contribution history can display the real earned amount.
+  xpAwarded     Int       @default(0)
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
 
@@ -173,6 +181,7 @@ model GithubReview {
   reviewerLogin String
   state         String
   submittedAt   DateTime
+  xpAwarded     Int      @default(0)
   createdAt     DateTime @default(now())
 
   issueId String
@@ -233,6 +242,68 @@ model Certificate {
 
   userId String
   user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  programEnrollment ProgramEnrollment?
+}
+
+// ---------------------------------------------------------------------------
+// Certification programs (fixed-duration contributor tracks - e.g. "Open Source
+// Contributor" over 3 months). Data-driven: requirements are plain thresholds
+// on the Program row, checked generically against synced GitHub activity since
+// enrollment. Completion auto-issues a real Certificate (already publicly
+// verifiable/shareable via /certificates/[id]).
+// ---------------------------------------------------------------------------
+
+enum ProgramTrack {
+  CONTRIBUTOR
+  DEVELOPER
+  QA
+  ANALYST
+  MAINTAINER
+}
+
+enum ProgramEnrollmentStatus {
+  IN_PROGRESS
+  COMPLETED
+  CANCELLED
+}
+
+model Program {
+  id               String       @id @default(uuid())
+  slug             String       @unique
+  title            String
+  description      String
+  motto            String?
+  track            ProgramTrack
+  durationMonths   Int
+  minMergedPRs     Int          @default(0)
+  minIssuesOpened  Int          @default(0)
+  minReviews       Int          @default(0)
+  certificateTitle String
+  isActive         Boolean      @default(true)
+  createdAt        DateTime     @default(now())
+  updatedAt        DateTime     @updatedAt
+
+  enrollments ProgramEnrollment[]
+}
+
+model ProgramEnrollment {
+  id          String                  @id @default(uuid())
+  status      ProgramEnrollmentStatus @default(IN_PROGRESS)
+  startedAt   DateTime                @default(now())
+  completedAt DateTime?
+  createdAt   DateTime                @default(now())
+  updatedAt   DateTime                @updatedAt
+
+  userId    String
+  user      User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  programId String
+  program   Program @relation(fields: [programId], references: [id], onDelete: Cascade)
+
+  certificateId String?      @unique
+  certificate   Certificate? @relation(fields: [certificateId], references: [id])
+
+  @@unique([userId, programId])
 }
 
 // ---------------------------------------------------------------------------
@@ -246,6 +317,7 @@ enum MissionType {
   TESTING
   CODE_REVIEW
   COMMUNITY_SUPPORT
+  BUG_REPORT
 }
 
 model Mission {
@@ -310,12 +382,14 @@ enum MentorshipStatus {
 }
 
 model Mentorship {
-  id        String           @id @default(uuid())
-  status    MentorshipStatus @default(PENDING)
-  message   String?
-  feedback  String?
-  createdAt DateTime         @default(now())
-  updatedAt DateTime         @updatedAt
+  id           String           @id @default(uuid())
+  status       MentorshipStatus @default(PENDING)
+  message      String?
+  feedback     String?
+  mentorRating Int?
+  mentorReview String?
+  createdAt    DateTime         @default(now())
+  updatedAt    DateTime         @updatedAt
 
   mentorId  String
   mentor    User    @relation("MentorMentorships", fields: [mentorId], references: [id], onDelete: Cascade)
@@ -325,8 +399,22 @@ model Mentorship {
   cohort    Cohort? @relation(fields: [cohortId], references: [id])
 
   sessions MentorshipSession[]
+  messages MentorshipMessage[]
 
   @@unique([mentorId, studentId, cohortId])
+}
+
+// A student bookmarking a mentor for later, from the "Find a Mentor" list.
+model SavedMentor {
+  id        String   @id @default(uuid())
+  createdAt DateTime @default(now())
+
+  userId   String
+  user     User @relation("SavedMentorsByUser", fields: [userId], references: [id], onDelete: Cascade)
+  mentorId String
+  mentor   User @relation("SavedByMentor", fields: [mentorId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, mentorId])
 }
 
 model MentorshipSession {
@@ -338,6 +426,18 @@ model MentorshipSession {
 
   mentorshipId String
   mentorship   Mentorship @relation(fields: [mentorshipId], references: [id], onDelete: Cascade)
+}
+
+// A single message in the contact thread between a mentor and their student.
+model MentorshipMessage {
+  id        String   @id @default(uuid())
+  body      String
+  createdAt DateTime @default(now())
+
+  mentorshipId String
+  mentorship   Mentorship @relation(fields: [mentorshipId], references: [id], onDelete: Cascade)
+  senderId     String
+  sender       User       @relation(fields: [senderId], references: [id], onDelete: Cascade)
 }
 
 // ---------------------------------------------------------------------------

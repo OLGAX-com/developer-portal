@@ -1,0 +1,62 @@
+[
+  {
+    "slug": "open-source-contributor-3mo",
+    "title": "Open Source Contributor",
+    "description": "A 3-month track for getting started: land merged pull requests and open real issues across tracked Olgax projects.",
+    "motto": "More PRs. More issues. More impact.",
+    "track": "CONTRIBUTOR",
+    "durationMonths": 3,
+    "minMergedPRs": 2,
+    "minIssuesOpened": 3,
+    "minReviews": 0,
+    "certificateTitle": "Open Source Contributor Certificate"
+  },
+  {
+    "slug": "open-source-developer-6mo",
+    "title": "Open Source Developer",
+    "description": "A 6-month track for hands-on shipping: merge a substantial number of pull requests and review others' work.",
+    "motto": "Ship more. Review more. Grow faster.",
+    "track": "DEVELOPER",
+    "durationMonths": 6,
+    "minMergedPRs": 8,
+    "minIssuesOpened": 0,
+    "minReviews": 3,
+    "certificateTitle": "Open Source Developer Certificate"
+  },
+  {
+    "slug": "open-source-qa-6mo",
+    "title": "Open Source QA / Tester",
+    "description": "A 6-month track for quality assurance: run projects locally, file well-documented bug reports, and review pull requests.",
+    "motto": "Test more. Report more. Break less.",
+    "track": "QA",
+    "durationMonths": 6,
+    "minMergedPRs": 0,
+    "minIssuesOpened": 10,
+    "minReviews": 2,
+    "certificateTitle": "Open Source QA / Tester Certificate"
+  },
+  {
+    "slug": "open-source-analyst-1yr",
+    "title": "Open Source Analyst",
+    "description": "A 1-year track spanning the full contribution lifecycle: shipping code, filing issues, and reviewing others' pull requests.",
+    "motto": "See the whole picture.",
+    "track": "ANALYST",
+    "durationMonths": 12,
+    "minMergedPRs": 10,
+    "minIssuesOpened": 10,
+    "minReviews": 10,
+    "certificateTitle": "Open Source Analyst Certificate"
+  },
+  {
+    "slug": "open-source-maintainer-18mo",
+    "title": "Open Source Maintainer",
+    "description": "An 18-month track for sustained, long-term involvement across the full contribution lifecycle - a substantial commitment, but paced for evenings and weekends, not a full-time job.",
+    "motto": "Show up. Keep shipping. Own it.",
+    "track": "MAINTAINER",
+    "durationMonths": 18,
+    "minMergedPRs": 15,
+    "minIssuesOpened": 15,
+    "minReviews": 15,
+    "certificateTitle": "Open Source Maintainer Certificate"
+  }
+]

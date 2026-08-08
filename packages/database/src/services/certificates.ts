@@ -19,7 +19,10 @@ export function issueCertificate(input: {
 export function getCertificate(id: string) {
   return prisma.certificate.findUnique({
     where: { id },
-    include: { user: { select: { name: true, image: true } } },
+    include: {
+      user: { select: { name: true, image: true, profile: { select: { githubUsername: true } } } },
+      programEnrollment: { include: { program: true } },
+    },
   });
 }
 

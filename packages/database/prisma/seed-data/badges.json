@@ -1,0 +1,50 @@
+[
+  {
+    "slug": "first-pr",
+    "name": "First PR",
+    "description": "Merged your first pull request",
+    "icon": "git-pull-request"
+  },
+  {
+    "slug": "top-reviewer",
+    "name": "Top Reviewer",
+    "description": "Reviewed multiple pull requests",
+    "icon": "message-square"
+  },
+  {
+    "slug": "bug-hunter",
+    "name": "Bug Hunter",
+    "description": "Fixed a confirmed bug",
+    "icon": "bug"
+  },
+  {
+    "slug": "documentation-hero",
+    "name": "Documentation Hero",
+    "description": "Improved project documentation",
+    "icon": "book-open"
+  },
+  {
+    "slug": "community-helper",
+    "name": "Community Helper",
+    "description": "Helped others in discussions or issues",
+    "icon": "heart-handshake"
+  },
+  {
+    "slug": "qa-champion",
+    "name": "QA Champion",
+    "description": "Reported a real bug found through hands-on testing",
+    "icon": "search"
+  },
+  {
+    "slug": "mentor",
+    "name": "Mentor",
+    "description": "Mentored a contributor to graduation",
+    "icon": "graduation-cap"
+  },
+  {
+    "slug": "maintainer",
+    "name": "Maintainer",
+    "description": "Maintains a project in the Olgax ecosystem",
+    "icon": "shield"
+  }
+]
