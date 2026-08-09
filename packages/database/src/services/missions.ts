@@ -1,6 +1,6 @@
 import type { MissionType } from "@prisma/client";
 import { prisma } from "../client";
-import { addXp } from "./profile";
+import { awardXp } from "./xp-ledger";
 import { awardBadge } from "./badges";
 import { createNotification } from "./notifications";
 
@@ -63,13 +63,21 @@ export async function checkAndCompleteMissions(userId: string) {
     const activityCount = await countActivityForMissionType(profile.githubUsername, mission.type);
     if (activityCount < 1) continue;
 
-    await prisma.userMission.upsert({
+    const userMission = await prisma.userMission.upsert({
       where: { userId_missionId: { userId, missionId: mission.id } },
       create: { userId, missionId: mission.id, status: "COMPLETED", completedAt: new Date() },
       update: { status: "COMPLETED", completedAt: new Date() },
     });
 
-    if (mission.xpReward > 0) await addXp(userId, mission.xpReward);
+    if (mission.xpReward > 0) {
+      await awardXp({
+        userId,
+        amount: mission.xpReward,
+        reason: `Completed mission: ${mission.title}`,
+        sourceType: "UserMission",
+        sourceId: userMission.id,
+      });
+    }
     if (mission.badge) await awardBadge(userId, mission.badge.slug);
 
     await createNotification({

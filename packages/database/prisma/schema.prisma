@@ -47,9 +47,10 @@ model User {
   savedByStudents    SavedMentor[]       @relation("SavedByMentor")
   mentorshipMessages MentorshipMessage[]
   programEnrollments ProgramEnrollment[]
+  xpEntries          XpEntry[]
 
-  proposedProjects         ProjectProposal[]        @relation("ProposedProjects")
-  reviewedProjectProposals ProjectProposal[]        @relation("ReviewedProjectProposals")
+  proposedProjects         ProjectProposal[]         @relation("ProposedProjects")
+  reviewedProjectProposals ProjectProposal[]         @relation("ReviewedProjectProposals")
   projectProposalComments  ProjectProposalComment[]
   projectProposalInterests ProjectProposalInterest[]
 }
@@ -104,6 +105,17 @@ model Profile {
   location           String?
   linkedinUrl        String?
   mentorAvailability String?
+  // Mentor-profile fields: collected by the "Become a Mentor" application and stay editable
+  // afterward (this is the single durable home for them, reused by both the application form
+  // and the public mentor profile page - not duplicated onto MentorApplication).
+  currentRole        String?
+  company            String?
+  yearsOfExperience  Int?
+  expertiseAreas     String[] @default([])
+  whyMentor          String?
+  mentorOffering     String?
+  portfolioUrl       String?
+  otherLinks         String[] @default([])
   xp                 Int      @default(0)
   level              Int      @default(1)
   createdAt          DateTime @default(now())
@@ -334,6 +346,7 @@ enum ProgramTrack {
 
 enum ProgramEnrollmentStatus {
   IN_PROGRESS
+  PENDING_APPROVAL
   COMPLETED
   CANCELLED
 }
@@ -349,6 +362,14 @@ model Program {
   minMergedPRs     Int          @default(0)
   minIssuesOpened  Int          @default(0)
   minReviews       Int          @default(0)
+  // Primary competency gate - the SAME XP shown on a contributor's profile/leaderboard (one
+  // score, one meaning). Set low enough that meeting the min* count requirements below always
+  // satisfies it too, so it never blocks someone who's visibly met the real requirements.
+  minXp            Int          @default(0)
+  // Maintainer-tier certifications shouldn't auto-issue just for hitting a number - meeting
+  // requirements instead moves the enrollment to PENDING_APPROVAL for a human maintainer/admin
+  // to review (see approveProgramCompletion in services/programs.ts).
+  requiresApproval Boolean      @default(false)
   certificateTitle String
   isActive         Boolean      @default(true)
   createdAt        DateTime     @default(now())
@@ -374,6 +395,28 @@ model ProgramEnrollment {
   certificate   Certificate? @relation(fields: [certificateId], references: [id])
 
   @@unique([userId, programId])
+}
+
+// ---------------------------------------------------------------------------
+// XP ledger: a transparent, itemized log ("why was I awarded this?") behind the single XP
+// number shown on a contributor's profile/leaderboard/level - every merged PR, opened issue,
+// code review, and completed mission logs a real row here with a human-readable reason, instead
+// of XP being an opaque running total. Idempotent per (userId, sourceType, sourceId) so
+// re-syncing the same GitHub activity never double-awards XP.
+// ---------------------------------------------------------------------------
+
+model XpEntry {
+  id         String   @id @default(uuid())
+  amount     Int
+  reason     String
+  sourceType String
+  sourceId   String
+  createdAt  DateTime @default(now())
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, sourceType, sourceId])
 }
 
 // ---------------------------------------------------------------------------
@@ -455,6 +498,11 @@ model Mentorship {
   id           String           @id @default(uuid())
   status       MentorshipStatus @default(PENDING)
   message      String?
+  // Per-request context from the "Request Mentorship" form - distinct from the mentor's own
+  // durable Profile fields above, since these describe what THIS student wants from THIS request.
+  goals        String?
+  skillLevel   String?
+  availability String?
   feedback     String?
   mentorRating Int?
   mentorReview String?
@@ -480,9 +528,9 @@ model SavedMentor {
   createdAt DateTime @default(now())
 
   userId   String
-  user     User @relation("SavedMentorsByUser", fields: [userId], references: [id], onDelete: Cascade)
+  user     User   @relation("SavedMentorsByUser", fields: [userId], references: [id], onDelete: Cascade)
   mentorId String
-  mentor   User @relation("SavedByMentor", fields: [mentorId], references: [id], onDelete: Cascade)
+  mentor   User   @relation("SavedByMentor", fields: [mentorId], references: [id], onDelete: Cascade)
 
   @@unique([userId, mentorId])
 }

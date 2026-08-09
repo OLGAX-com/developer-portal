@@ -36,6 +36,8 @@ interface ProgramSeed {
   minMergedPRs: number;
   minIssuesOpened: number;
   minReviews: number;
+  minXp: number;
+  requiresApproval: boolean;
   certificateTitle: string;
 }
 

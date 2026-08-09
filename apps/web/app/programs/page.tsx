@@ -4,6 +4,7 @@ import { Award, Calendar, CheckCircle2, GitPullRequest, MessageSquare, Tag } fro
 
 import { auth } from "@olgax/auth";
 import {
+  checkAndAwardActivityXp,
   checkAndCompletePrograms,
   getProgramProgress,
   listPrograms,
@@ -19,13 +20,14 @@ import { enrollInProgram, unenrollFromProgram } from "./actions";
 const TRACK_LABEL: Record<string, string> = {
   CONTRIBUTOR: "Contributor",
   DEVELOPER: "Developer",
-  QA: "QA / Tester",
-  ANALYST: "Analyst",
+  QA: "QA Engineer",
+  ANALYST: "Product Analyst",
   MAINTAINER: "Maintainer",
 };
 
 export default async function ProgramsPage() {
   const session = await auth.api.getSession({ headers: await headers() });
+  if (session) await checkAndAwardActivityXp(session.user.id).catch(() => null);
   if (session) await checkAndCompletePrograms(session.user.id).catch(() => null);
 
   const [programs, enrollments, profile] = await Promise.all([
@@ -40,12 +42,17 @@ export default async function ProgramsPage() {
   const progressByEnrollmentId = new Map(
     await Promise.all(
       activeEnrollments
-        .filter((enrollment) => enrollment.status === "IN_PROGRESS")
+        .filter((enrollment) => enrollment.status === "IN_PROGRESS" || enrollment.status === "PENDING_APPROVAL")
         .map(
           async (enrollment) =>
             [
               enrollment.id,
-              await getProgramProgress(enrollment, enrollment.program, profile?.githubUsername ?? null),
+              await getProgramProgress(
+                enrollment,
+                enrollment.program,
+                profile?.githubUsername ?? null,
+                profile?.xp ?? 0,
+              ),
             ] as const,
         ),
     ),
@@ -60,8 +67,10 @@ export default async function ProgramsPage() {
     <div className="mx-auto max-w-6xl px-4 py-16 sm:px-6">
       <h1 className="mb-2 text-3xl font-semibold tracking-tight">Certification Programs</h1>
       <p className="mb-8 text-muted-foreground">
-        Structured, fixed-duration tracks - 3 months, 6 months, or a year - that turn real contribution
-        history into a public, verifiable certificate you can share.
+        Competency-based tracks that turn real contribution history - the same XP you already earn on
+        your <Link href="/profile#xp-history" className="underline">profile</Link> - into a public,
+        verifiable certificate you can share. Typical completion times are shown as a guide only;
+        there&apos;s no clock to wait out, hit the requirements and your certificate is issued right away.
       </p>
 
       {activeEnrollments.length > 0 && (
@@ -96,8 +105,9 @@ export default async function ProgramsPage() {
                     <div className="flex flex-wrap items-center gap-2">
                       <Badge variant="secondary">{TRACK_LABEL[program.track] ?? program.track}</Badge>
                       <Badge variant="outline">
-                        {program.durationMonths} month{program.durationMonths === 1 ? "" : "s"}
+                        ~{program.durationMonths} month{program.durationMonths === 1 ? "" : "s"} typical
                       </Badge>
+                      {program.requiresApproval && <Badge variant="outline">Maintainer-reviewed</Badge>}
                     </div>
                     <CardTitle>{program.title}</CardTitle>
                     {program.motto && (
@@ -107,6 +117,7 @@ export default async function ProgramsPage() {
                   </CardHeader>
                   <CardContent className="flex flex-col gap-3">
                     <ul className="flex flex-col gap-1 text-sm text-muted-foreground">
+                      {program.minXp > 0 && <li>- {program.minXp}+ XP</li>}
                       {program.minMergedPRs > 0 && <li>- {program.minMergedPRs} merged pull requests</li>}
                       {program.minIssuesOpened > 0 && <li>- {program.minIssuesOpened} issues opened</li>}
                       {program.minReviews > 0 && <li>- {program.minReviews} code reviews</li>}
@@ -173,6 +184,27 @@ function ActivityList({ label, icon: Icon, items, required }: {
   );
 }
 
+function XpProgress({ xp, required }: { xp: number; required: number }) {
+  const percent = Math.min(100, (xp / required) * 100);
+
+  return (
+    <div className="rounded-lg border border-navy/30 p-3 dark:border-yellow/30">
+      <div className="mb-1 flex items-center justify-between text-sm">
+        <span className="flex items-center gap-1.5 font-medium">
+          <Award className="size-4 text-muted-foreground" />
+          XP
+        </span>
+        <span className="text-muted-foreground">
+          {xp} / {required}
+        </span>
+      </div>
+      <div className="h-1.5 w-full overflow-hidden rounded-full bg-muted">
+        <div className="h-full rounded-full bg-navy dark:bg-yellow" style={{ width: `${percent}%` }} />
+      </div>
+    </div>
+  );
+}
+
 async function ActiveProgramCard({
   enrollment,
   progress,
@@ -194,10 +226,13 @@ async function ActiveProgramCard({
           <div className="flex flex-wrap items-center gap-2">
             <Badge variant="secondary">{TRACK_LABEL[program.track] ?? program.track}</Badge>
             <Badge variant="outline">
-              {program.durationMonths} month{program.durationMonths === 1 ? "" : "s"}
+              ~{program.durationMonths} month{program.durationMonths === 1 ? "" : "s"} typical
             </Badge>
             {enrollment.status === "COMPLETED" && (
               <Badge className="bg-navy text-white dark:bg-yellow dark:text-navy">Completed</Badge>
+            )}
+            {enrollment.status === "PENDING_APPROVAL" && (
+              <Badge className="bg-navy text-white dark:bg-yellow dark:text-navy">Pending approval</Badge>
             )}
           </div>
           {enrollment.status === "IN_PROGRESS" && (
@@ -241,9 +276,17 @@ async function ActiveProgramCard({
               </Link>
             )}
           </div>
+        ) : enrollment.status === "PENDING_APPROVAL" ? (
+          <div className="flex items-center gap-2">
+            <Award className="size-6 shrink-0 text-navy dark:text-yellow" />
+            <p className="text-sm font-medium">
+              You&apos;ve met the requirements - a maintainer will review and approve your certificate soon.
+            </p>
+          </div>
         ) : (
           progress && (
             <>
+              {program.minXp > 0 && <XpProgress xp={progress.totalXp} required={program.minXp} />}
               <div className="grid gap-3 sm:grid-cols-3">
                 {program.minMergedPRs > 0 && (
                   <ActivityList
