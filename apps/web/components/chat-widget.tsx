@@ -29,9 +29,9 @@ export async function ChatWidget() {
         )}
       </summary>
 
-      <div className="absolute right-0 bottom-16 flex max-h-[70vh] w-80 flex-col overflow-hidden rounded-xl border bg-popover text-popover-foreground shadow-xl">
-        <div className="border-b px-4 py-3 text-sm font-semibold">Messages</div>
-        <div className="flex-1 overflow-y-auto">
+      <div className="absolute right-0 bottom-16 flex max-h-[70vh] w-[calc(100vw-2rem)] max-w-80 flex-col overflow-hidden rounded-xl border bg-popover text-popover-foreground shadow-xl">
+        <div className="shrink-0 border-b px-4 py-3 text-sm font-semibold">Messages</div>
+        <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain">
           {conversations.map((conversation) => {
             const lastMessage = conversation.messages[conversation.messages.length - 1] ?? null;
 
@@ -54,14 +54,14 @@ export async function ChatWidget() {
                 </summary>
                 <div className="flex flex-col gap-2 bg-muted/20 px-4 py-3">
                   {conversation.messages.length > 0 && (
-                    <div className="flex max-h-40 flex-col gap-1.5 overflow-y-auto pr-1">
+                    <div className="flex max-h-40 flex-col items-start gap-1.5 overflow-y-auto overscroll-contain pr-1">
                       {conversation.messages.map((message) => (
                         <div
                           key={message.id}
-                          className={`max-w-[85%] rounded-md px-2.5 py-1.5 text-xs ${
+                          className={`max-w-[85%] min-w-0 rounded-md px-2.5 py-1.5 text-xs break-words whitespace-pre-wrap ${
                             message.senderId === session.user.id
                               ? "self-end bg-navy text-white dark:bg-yellow dark:text-navy"
-                              : "self-start bg-muted"
+                              : "self-start border bg-background"
                           }`}
                         >
                           {message.body}
@@ -74,10 +74,11 @@ export async function ChatWidget() {
                       name="body"
                       required
                       rows={1}
-                      placeholder={`Message ${conversation.otherParty.name}...`}
-                      className="min-h-8 flex-1 text-xs"
+                      aria-label={`Message ${conversation.otherParty.name}`}
+                      placeholder="Write a message..."
+                      className="min-h-7 w-full min-w-0 flex-1 resize-none px-2 py-1.5 text-xs md:text-xs"
                     />
-                    <Button type="submit" size="sm">
+                    <Button type="submit" size="sm" className="shrink-0">
                       Send
                     </Button>
                   </form>
@@ -88,7 +89,7 @@ export async function ChatWidget() {
         </div>
         <Link
           href="/mentorship"
-          className="border-t px-4 py-2 text-center text-xs text-muted-foreground hover:underline"
+          className="shrink-0 border-t px-4 py-2 text-center text-xs text-muted-foreground hover:underline"
         >
           Open full mentorship page →
         </Link>

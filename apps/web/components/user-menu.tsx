@@ -51,11 +51,18 @@ export function UserMenu() {
           </AvatarFallback>
         </Avatar>
       </DropdownMenuTrigger>
-      <DropdownMenuContent align="end">
+      <DropdownMenuContent align="end" className="w-60">
         <DropdownMenuGroup>
-          <DropdownMenuLabel className="flex flex-col">
-            <span className="font-medium">{user.name}</span>
-            <span className="text-xs font-normal text-muted-foreground">{user.email}</span>
+          <DropdownMenuLabel className="flex flex-col gap-0.5 overflow-hidden">
+            <span className="truncate text-sm font-medium text-foreground" title={user.name}>
+              {user.name}
+            </span>
+            <span
+              className="truncate text-xs font-normal text-muted-foreground"
+              title={user.email}
+            >
+              {user.email}
+            </span>
           </DropdownMenuLabel>
         </DropdownMenuGroup>
         <DropdownMenuSeparator />
