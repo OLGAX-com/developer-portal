@@ -1,15 +1,16 @@
 import Link from "next/link";
-import { GraduationCap, LayoutDashboard, Users } from "lucide-react";
+import { Award, GraduationCap, LayoutDashboard, Users } from "lucide-react";
 
 import { prisma } from "@olgax/database";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
 export default async function AdminHomePage() {
-  const [userCount, projectCount, pendingMentorApplications] = await Promise.all([
+  const [userCount, projectCount, pendingMentorApplications, pendingProgramApprovals] = await Promise.all([
     prisma.user.count(),
     prisma.project.count(),
     prisma.mentorApplication.count({ where: { status: "PENDING" } }),
+    prisma.programEnrollment.count({ where: { status: "PENDING_APPROVAL" } }),
   ]);
 
   return (
@@ -48,6 +49,18 @@ export default async function AdminHomePage() {
                 <p className="text-sm text-muted-foreground">Review and approve mentor requests</p>
               </div>
               {pendingMentorApplications > 0 && <Badge className="ml-auto">{pendingMentorApplications}</Badge>}
+            </CardHeader>
+          </Card>
+        </Link>
+        <Link href="/admin/program-approvals">
+          <Card className="transition-colors hover:bg-muted/50">
+            <CardHeader className="flex-row items-center gap-3">
+              <Award className="size-5 text-navy dark:text-yellow" />
+              <div>
+                <CardTitle>Program Approvals</CardTitle>
+                <p className="text-sm text-muted-foreground">Approve Maintainer-tier certifications</p>
+              </div>
+              {pendingProgramApprovals > 0 && <Badge className="ml-auto">{pendingProgramApprovals}</Badge>}
             </CardHeader>
           </Card>
         </Link>

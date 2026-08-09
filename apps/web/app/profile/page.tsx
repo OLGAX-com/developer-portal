@@ -1,9 +1,17 @@
 import { headers } from "next/headers";
 import Link from "next/link";
-import { Award, CircleDot, GitPullRequest, MessageSquare } from "lucide-react";
+import { ArrowRight, Award, CircleDot, GitPullRequest, MessageSquare, Sparkles } from "lucide-react";
 
 import { auth, hasRole } from "@olgax/auth";
-import { calculateLevel, checkAndAwardActivityXp, checkAndCompleteMissions, listBadgesForUser, listCertificatesForUser, prisma } from "@olgax/database";
+import {
+  calculateLevel,
+  checkAndAwardActivityXp,
+  checkAndCompleteMissions,
+  listBadgesForUser,
+  listCertificatesForUser,
+  listXpEntriesForUser,
+  prisma,
+} from "@olgax/database";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -13,6 +21,9 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { BadgeCard } from "@/components/badge-card";
 import { updateProfile } from "./actions";
+
+// Full history lives at /profile/history - the profile page only previews the most recent few.
+const PREVIEW_LIMIT = 5;
 
 export default async function ProfilePage() {
   const session = await auth.api.getSession({ headers: await headers() });
@@ -31,32 +42,40 @@ export default async function ProfilePage() {
   await checkAndCompleteMissions(session.user.id).catch(() => {});
   await checkAndAwardActivityXp(session.user.id).catch(() => {});
 
-  const [user, profile, badges, certificates] = await Promise.all([
+  const [user, profile, badges, certificates, xpLogPreview] = await Promise.all([
     prisma.user.findUniqueOrThrow({ where: { id: session.user.id } }),
     prisma.profile.findUnique({ where: { userId: session.user.id } }),
     listBadgesForUser(session.user.id),
     listCertificatesForUser(session.user.id),
+    listXpEntriesForUser(session.user.id, PREVIEW_LIMIT + 1),
   ]);
+
+  const xpLog = xpLogPreview.slice(0, PREVIEW_LIMIT);
+  const hasMoreXp = xpLogPreview.length > PREVIEW_LIMIT;
 
   const { level, xpIntoLevel, xpToNextLevel } = calculateLevel(profile?.xp ?? 0);
   const progressPercent = Math.round((xpIntoLevel / xpToNextLevel) * 100);
 
-  const [contributions, reviews] = profile?.githubUsername
+  const [contributionsPreview, reviewsPreview] = profile?.githubUsername
     ? await Promise.all([
         prisma.githubIssue.findMany({
           where: { authorLogin: profile.githubUsername },
           include: { project: true },
           orderBy: { openedAt: "desc" },
-          take: 15,
+          take: PREVIEW_LIMIT + 1,
         }),
         prisma.githubReview.findMany({
           where: { reviewerLogin: profile.githubUsername },
           include: { issue: { include: { project: true } } },
           orderBy: { submittedAt: "desc" },
-          take: 15,
+          take: PREVIEW_LIMIT + 1,
         }),
       ])
     : [[], []];
+
+  const contributions = contributionsPreview.slice(0, PREVIEW_LIMIT);
+  const reviews = reviewsPreview.slice(0, PREVIEW_LIMIT);
+  const hasMoreContributions = contributionsPreview.length > PREVIEW_LIMIT || reviewsPreview.length > PREVIEW_LIMIT;
 
   return (
     <div className="mx-auto max-w-4xl px-4 py-16 sm:px-6">
@@ -154,6 +173,54 @@ export default async function ProfilePage() {
         </Card>
       </section>
 
+      <section id="xp-history" className="mb-10">
+        <div className="mb-3 flex flex-wrap items-baseline justify-between gap-2">
+          <h2 className="text-xl font-semibold">XP history</h2>
+          <p className="text-sm text-muted-foreground">
+            <span className="font-semibold text-navy dark:text-yellow">{profile?.xp ?? 0}</span> total XP
+          </p>
+        </div>
+        <p className="mb-3 text-sm text-muted-foreground">
+          The exact same XP that sets your level above and your spot on the{" "}
+          <Link href="/leaderboard" className="underline">
+            leaderboard
+          </Link>{" "}
+          - every entry below is a real, itemized reason you earned it.
+        </p>
+        {xpLog.length === 0 ? (
+          <p className="text-sm text-muted-foreground">
+            No XP yet - merged pull requests, opened issues, code reviews, and completed missions on
+            tracked projects all earn XP.
+          </p>
+        ) : (
+          <div className="flex flex-col gap-2">
+            {xpLog.map((entry) => (
+              <Card key={entry.id}>
+                <CardContent className="flex items-center gap-2 py-3 text-sm">
+                  <Sparkles className="size-4 shrink-0 text-navy dark:text-yellow" />
+                  <div className="flex-1">
+                    <p>{entry.reason}</p>
+                    <p className="text-xs text-muted-foreground">{entry.createdAt.toLocaleDateString()}</p>
+                  </div>
+                  <Badge variant="outline" className="text-navy dark:text-yellow">
+                    +{entry.amount} XP
+                  </Badge>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        )}
+        {hasMoreXp && (
+          <Link
+            href="/profile/history#xp"
+            className="mt-2 flex w-fit items-center gap-1 text-sm font-medium text-navy hover:underline dark:text-yellow"
+          >
+            View all XP history
+            <ArrowRight className="size-3.5" />
+          </Link>
+        )}
+      </section>
+
       <section className="mb-10">
         <h2 className="mb-3 text-xl font-semibold">Badges</h2>
         {badges.length === 0 ? (
@@ -248,6 +315,15 @@ export default async function ProfilePage() {
               </Card>
             ))}
           </div>
+        )}
+        {hasMoreContributions && (
+          <Link
+            href="/profile/history#contributions"
+            className="mt-2 flex w-fit items-center gap-1 text-sm font-medium text-navy hover:underline dark:text-yellow"
+          >
+            View all contribution history
+            <ArrowRight className="size-3.5" />
+          </Link>
         )}
       </section>
     </div>

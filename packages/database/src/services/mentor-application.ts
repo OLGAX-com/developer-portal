@@ -1,13 +1,48 @@
 import { prisma } from "../client";
 import { createNotification } from "./notifications";
 
-export async function applyForMentorship(userId: string, message: string) {
+export interface MentorProfileDetails {
+  currentRole?: string;
+  company?: string;
+  yearsOfExperience?: number;
+  expertiseAreas: string[];
+  whyMentor: string;
+  mentorOffering: string;
+  linkedinUrl?: string;
+  portfolioUrl?: string;
+  otherLinks?: string[];
+}
+
+/** The single place mentor-profile fields are written - reused by both the initial application and later edits. */
+export function saveMentorProfileDetails(userId: string, details: MentorProfileDetails) {
+  const data = {
+    currentRole: details.currentRole,
+    company: details.company,
+    yearsOfExperience: details.yearsOfExperience,
+    expertiseAreas: details.expertiseAreas,
+    whyMentor: details.whyMentor,
+    mentorOffering: details.mentorOffering,
+    linkedinUrl: details.linkedinUrl,
+    portfolioUrl: details.portfolioUrl,
+    otherLinks: details.otherLinks ?? [],
+  };
+
+  return prisma.profile.upsert({
+    where: { userId },
+    create: { userId, ...data },
+    update: data,
+  });
+}
+
+export async function applyForMentorship(userId: string, details: MentorProfileDetails) {
+  await saveMentorProfileDetails(userId, details);
+
   const existingPending = await prisma.mentorApplication.findFirst({
     where: { userId, status: "PENDING" },
   });
   if (existingPending) return existingPending;
 
-  return prisma.mentorApplication.create({ data: { userId, message } });
+  return prisma.mentorApplication.create({ data: { userId, message: details.whyMentor } });
 }
 
 export function getLatestMentorApplication(userId: string) {

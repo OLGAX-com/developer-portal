@@ -5,12 +5,10 @@ import { revalidatePath } from "next/cache";
 
 import { auth } from "@olgax/auth";
 import {
-  applyForMentorship as applyForMentorshipService,
   broadcastMentorshipMessage as broadcastMentorshipMessageService,
   graduateMentorship as graduateMentorshipService,
   prisma,
   rateMentor as rateMentorService,
-  requestMentorship as requestMentorshipService,
   respondToMentorship as respondToMentorshipService,
   saveMentor as saveMentorService,
   scheduleGroupMentorshipSessions as scheduleGroupMentorshipSessionsService,
@@ -18,28 +16,6 @@ import {
   sendMentorshipMessage as sendMentorshipMessageService,
   unsaveMentor as unsaveMentorService,
 } from "@olgax/database";
-
-export async function requestMentorship(mentorId: string, formData: FormData) {
-  const session = await auth.api.getSession({ headers: await headers() });
-  if (!session) throw new Error("You must be signed in to request mentorship.");
-  if (session.user.id === mentorId) throw new Error("You can't request mentorship from yourself.");
-
-  const message = String(formData.get("message") ?? "").trim() || undefined;
-
-  await requestMentorshipService({ mentorId, studentId: session.user.id, message });
-  revalidatePath("/mentorship");
-}
-
-export async function applyForMentorship(formData: FormData) {
-  const session = await auth.api.getSession({ headers: await headers() });
-  if (!session) throw new Error("You must be signed in to apply.");
-
-  const message = String(formData.get("message") ?? "").trim();
-  if (!message) throw new Error("Tell us a bit about why you'd like to mentor.");
-
-  await applyForMentorshipService(session.user.id, message);
-  revalidatePath("/mentorship");
-}
 
 async function assertIsMentorOnMentorship(mentorshipId: string, mentorId: string) {
   const mentorship = await prisma.mentorship.findUniqueOrThrow({ where: { id: mentorshipId } });
@@ -52,7 +28,7 @@ export async function acceptMentorship(mentorshipId: string) {
   await assertIsMentorOnMentorship(mentorshipId, session.user.id);
 
   await respondToMentorshipService(mentorshipId, "ACTIVE");
-  revalidatePath("/mentorship");
+  revalidatePath("/mentorship/dashboard", "layout");
 }
 
 export async function declineMentorship(mentorshipId: string) {
@@ -61,7 +37,7 @@ export async function declineMentorship(mentorshipId: string) {
   await assertIsMentorOnMentorship(mentorshipId, session.user.id);
 
   await respondToMentorshipService(mentorshipId, "DECLINED");
-  revalidatePath("/mentorship");
+  revalidatePath("/mentorship/dashboard", "layout");
 }
 
 export async function graduateMentorship(mentorshipId: string) {
@@ -70,7 +46,7 @@ export async function graduateMentorship(mentorshipId: string) {
   await assertIsMentorOnMentorship(mentorshipId, session.user.id);
 
   await graduateMentorshipService(mentorshipId);
-  revalidatePath("/mentorship");
+  revalidatePath("/mentorship/dashboard", "layout");
 }
 
 export async function scheduleSession(mentorshipId: string, formData: FormData) {
@@ -83,7 +59,7 @@ export async function scheduleSession(mentorshipId: string, formData: FormData) 
   const meetingLink = String(formData.get("meetingLink") ?? "").trim() || undefined;
 
   await scheduleMentorshipSessionService(mentorshipId, session.user.id, scheduledAt, notes, meetingLink);
-  revalidatePath("/mentorship");
+  revalidatePath("/mentorship/dashboard", "layout");
 }
 
 export async function scheduleGroupSession(formData: FormData) {
@@ -99,7 +75,7 @@ export async function scheduleGroupSession(formData: FormData) {
   const meetingLink = String(formData.get("meetingLink") ?? "").trim() || undefined;
 
   await scheduleGroupMentorshipSessionsService(session.user.id, mentorshipIds, scheduledAt, notes, meetingLink);
-  revalidatePath("/mentorship");
+  revalidatePath("/mentorship/dashboard", "layout");
 }
 
 export async function broadcastMessage(formData: FormData) {
@@ -111,7 +87,7 @@ export async function broadcastMessage(formData: FormData) {
 
   const body = String(formData.get("body") ?? "");
   await broadcastMentorshipMessageService(session.user.id, mentorshipIds, body);
-  revalidatePath("/mentorship");
+  revalidatePath("/mentorship/dashboard", "layout");
 }
 
 export async function sendMessage(mentorshipId: string, formData: FormData) {
@@ -120,7 +96,7 @@ export async function sendMessage(mentorshipId: string, formData: FormData) {
 
   const body = String(formData.get("body") ?? "");
   await sendMentorshipMessageService(mentorshipId, session.user.id, body);
-  revalidatePath("/mentorship");
+  revalidatePath("/mentorship/dashboard", "layout");
 }
 
 export async function rateMentor(mentorshipId: string, formData: FormData) {
@@ -131,7 +107,7 @@ export async function rateMentor(mentorshipId: string, formData: FormData) {
   const review = String(formData.get("review") ?? "").trim() || undefined;
 
   await rateMentorService(mentorshipId, session.user.id, rating, review);
-  revalidatePath("/mentorship");
+  revalidatePath("/mentorship/dashboard", "layout");
 }
 
 export async function saveMentor(mentorId: string) {
@@ -140,6 +116,7 @@ export async function saveMentor(mentorId: string) {
 
   await saveMentorService(session.user.id, mentorId);
   revalidatePath("/mentorship");
+  revalidatePath(`/mentors/${mentorId}`);
 }
 
 export async function unsaveMentor(mentorId: string) {
@@ -148,4 +125,6 @@ export async function unsaveMentor(mentorId: string) {
 
   await unsaveMentorService(session.user.id, mentorId);
   revalidatePath("/mentorship");
+  revalidatePath(`/mentors/${mentorId}`);
 }
+

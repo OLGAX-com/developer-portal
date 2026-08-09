@@ -6,6 +6,9 @@ export async function requestMentorship(input: {
   mentorId: string;
   studentId: string;
   message?: string;
+  goals?: string;
+  skillLevel?: string;
+  availability?: string;
   cohortId?: string;
 }) {
   // Not a plain upsert on the compound unique: Postgres treats NULL cohortId as
@@ -18,7 +21,14 @@ export async function requestMentorship(input: {
   if (existing && (existing.status === "DECLINED" || existing.status === "CANCELLED")) {
     return prisma.mentorship.update({
       where: { id: existing.id },
-      data: { status: "PENDING", message: input.message, feedback: null },
+      data: {
+        status: "PENDING",
+        message: input.message,
+        goals: input.goals,
+        skillLevel: input.skillLevel,
+        availability: input.availability,
+        feedback: null,
+      },
     });
   }
   if (existing) return existing;
@@ -29,6 +39,9 @@ export async function requestMentorship(input: {
       studentId: input.studentId,
       cohortId: input.cohortId,
       message: input.message,
+      goals: input.goals,
+      skillLevel: input.skillLevel,
+      availability: input.availability,
     },
   });
 }
@@ -100,7 +113,7 @@ export async function sendMentorshipMessage(mentorshipId: string, senderId: stri
     type: "MENTORSHIP_UPDATE",
     title: "New mentorship message",
     body: trimmed.length > 140 ? `${trimmed.slice(0, 140)}\u2026` : trimmed,
-    link: "/mentorship",
+    link: "/mentorship/dashboard",
   });
 
   return message;
@@ -289,4 +302,16 @@ export function listMentorshipsForUser(userId: string) {
     },
     orderBy: { createdAt: "desc" },
   });
+}
+
+/** A single mentor's public profile - name, role/company, education, experience, expertise, links, rating. Returns null for non-mentors. */
+export async function getMentorProfile(mentorId: string) {
+  const mentor = await prisma.user.findUnique({
+    where: { id: mentorId },
+    include: { profile: true },
+  });
+  if (!mentor || !["MENTOR", "MAINTAINER", "ADMINISTRATOR"].includes(mentor.role)) return null;
+
+  const ratingSummary = await getMentorRatingSummary(mentorId);
+  return { ...mentor, ratingSummary };
 }

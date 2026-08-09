@@ -12,8 +12,8 @@ import { Card, CardContent } from "@/components/ui/card";
 const TRACK_LABEL: Record<string, string> = {
   CONTRIBUTOR: "Contributor",
   DEVELOPER: "Developer",
-  QA: "QA / Tester",
-  ANALYST: "Analyst",
+  QA: "QA Engineer",
+  ANALYST: "Product Analyst",
   MAINTAINER: "Maintainer",
 };
 
@@ -32,7 +32,12 @@ export default async function CertificatePage({
   const enrollment = certificate.programEnrollment;
   const program = enrollment?.program;
   const progress = enrollment
-    ? await getProgramProgress(enrollment, enrollment.program, certificate.user.profile?.githubUsername ?? null)
+    ? await getProgramProgress(
+        enrollment,
+        enrollment.program,
+        certificate.user.profile?.githubUsername ?? null,
+        certificate.user.profile?.xp ?? 0,
+      )
     : null;
 
   return (
@@ -85,6 +90,12 @@ export default async function CertificatePage({
             <div className="flex flex-col gap-2">
               {progress ? (
                 <>
+                  {program!.minXp > 0 && (
+                    <p className="flex items-center gap-1.5 text-sm font-medium text-navy dark:text-yellow">
+                      <CheckCircle2 className="size-3.5 shrink-0" />
+                      {progress.totalXp} XP
+                    </p>
+                  )}
                   {program!.minMergedPRs > 0 && (
                     <AchievementDetails
                       label="Merged pull requests"
