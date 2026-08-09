@@ -189,8 +189,11 @@ function LeaderboardTable({
   );
 }
 
-const PODIUM_ORDER = ["order-2 sm:order-1", "order-1 sm:order-2", "order-3 sm:order-3"];
-const PODIUM_HEIGHT = ["sm:pt-6", "sm:pt-0", "sm:pt-10"];
+// Indexed by podium position (rows are rank-ascending, so 0 = 1st place). Natural
+// 1-2-3 order when stacked, and the classic 2-1-3 arrangement from sm up, where the
+// winner sits in the middle and rides highest (less pt = taller card).
+const PODIUM_ORDER = ["order-1 sm:order-2", "order-2 sm:order-1", "order-3 sm:order-3"];
+const PODIUM_HEIGHT = ["sm:pt-0", "sm:pt-6", "sm:pt-10"];
 
 function UniversityTable({
   rows,
@@ -243,9 +246,13 @@ function Podium({
   return (
     <div className="grid grid-cols-3 items-end gap-3">
       {rows.map((row, index) => (
-        <Link key={row.key} href={`/contributors/${row.githubUsername}`}>
-          <Card className={`${PODIUM_ORDER[index]} ${PODIUM_HEIGHT[index]} h-full transition-colors hover:border-navy dark:hover:border-yellow`}>
-            <CardContent className="flex flex-col items-center gap-2 py-5 text-center">
+        <Link
+          key={row.key}
+          href={`/contributors/${row.githubUsername}`}
+          className={`${PODIUM_ORDER[index]} ${PODIUM_HEIGHT[index]} min-w-0`}
+        >
+          <Card className="h-full transition-colors hover:border-navy dark:hover:border-yellow">
+            <CardContent className="flex flex-col items-center gap-2 px-2 py-5 text-center sm:px-4">
               {row.rank === 1 && <Trophy className="size-5 text-yellow" />}
               <Avatar size={row.rank === 1 ? "lg" : "default"}>
                 <AvatarImage
@@ -254,12 +261,14 @@ function Podium({
                 />
                 <AvatarFallback>{(row.name ?? row.key).slice(0, 2).toUpperCase()}</AvatarFallback>
               </Avatar>
-              <div>
-                <p className="text-sm font-medium">{row.name}</p>
-                {row.sub && <p className="text-xs text-muted-foreground">{row.sub}</p>}
+              <div className="min-w-0 max-w-full">
+                <p className="text-sm font-medium break-words">{row.name}</p>
+                {row.sub && <p className="text-xs break-words text-muted-foreground">{row.sub}</p>}
                 {!row.isRegistered && <p className="text-xs text-muted-foreground">Hasn&apos;t joined yet</p>}
               </div>
-              <Badge variant={row.rank === 1 ? "default" : "secondary"}>#{row.rank} · {row.metric}</Badge>
+              <Badge variant={row.rank === 1 ? "default" : "secondary"} className="max-w-full">
+                #{row.rank} · {row.metric}
+              </Badge>
             </CardContent>
           </Card>
         </Link>
