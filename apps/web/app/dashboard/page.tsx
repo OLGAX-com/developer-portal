@@ -146,12 +146,19 @@ export default async function DashboardPage({
         </div>
       )}
 
-      <div className="mb-6 grid gap-4 sm:grid-cols-4">
+      <div className="mb-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <Card>
           <CardContent className="py-4">
             <p className="text-sm text-muted-foreground">Level</p>
             <p className="mt-1 text-2xl font-semibold">{profile?.level ?? 1}</p>
-            <div className="mt-2 h-1.5 w-full overflow-hidden rounded-full bg-muted">
+            <div
+              role="progressbar"
+              aria-valuemin={0}
+              aria-valuemax={xpToNextLevel}
+              aria-valuenow={xpIntoLevel}
+              aria-label="XP to next level"
+              className="mt-2 h-1.5 w-full overflow-hidden rounded-full bg-muted"
+            >
               <div
                 className="h-full rounded-full bg-navy dark:bg-yellow"
                 style={{ width: `${xpToNextLevel > 0 ? Math.min(100, (xpIntoLevel / xpToNextLevel) * 100) : 0}%` }}
@@ -206,15 +213,22 @@ export default async function DashboardPage({
           <CardContent className="py-4">
             <p className="text-sm text-muted-foreground">Community</p>
             <div className="mt-2 flex flex-col gap-1 text-sm">
-              <Link href={COMMUNITY_LINKS.discord} className="flex items-center gap-1.5 hover:underline">
-                <MessageCircle className="size-3.5" /> Discord
-              </Link>
-              <Link
-                href={COMMUNITY_LINKS.githubDiscussions}
+              <a
+                href={COMMUNITY_LINKS.discord}
+                target="_blank"
+                rel="noreferrer"
                 className="flex items-center gap-1.5 hover:underline"
               >
-                <MessagesSquare className="size-3.5" /> GitHub Discussions
-              </Link>
+                <MessageCircle className="size-3.5 shrink-0" /> Discord
+              </a>
+              <a
+                href={COMMUNITY_LINKS.githubDiscussions}
+                target="_blank"
+                rel="noreferrer"
+                className="flex items-center gap-1.5 hover:underline"
+              >
+                <MessagesSquare className="size-3.5 shrink-0" /> GitHub Discussions
+              </a>
             </div>
           </CardContent>
         </Card>
