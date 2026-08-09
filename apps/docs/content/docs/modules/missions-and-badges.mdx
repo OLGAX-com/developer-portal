@@ -1,7 +1,29 @@
 ---
 title: Missions & Badges
-description: Data-driven missions, automatic completion, badges, and certificates
+description: Data-driven missions, automatic completion, badges, XP, and certificates
 ---
+
+## XP
+
+XP is the single, transparent score behind levels, the leaderboard, AND certification
+eligibility - deliberately one number rather than two competing scores. Every award is logged as
+a real, itemized `XpEntry` row (`amount`, `reason`, `createdAt`) via `awardXp()` in
+`services/xp-ledger.ts`, so "why did I get this XP?" always has a real answer, visible on a
+contributor's `/profile` page under "XP history".
+
+`checkAndAwardActivityXp(userId)` scans a contributor's synced GitHub activity (matched by
+`Profile.githubUsername`) and awards ongoing, uncapped XP for every unit of real activity not yet
+counted:
+
+| Activity | XP |
+| --- | --- |
+| Merged pull request | 25 |
+| Opened issue | 10 |
+| Code review | 15 |
+
+Each row is idempotent via a unique constraint on `(userId, sourceType, sourceId)`, so re-syncing
+the same GitHub activity never double-awards XP. `awardXp()` is the only place XP is ever granted
+- missions (below) call it too, for one-time milestone bonuses.
 
 ## Missions
 
@@ -10,8 +32,8 @@ optional `badgeId`) — never hardcoded in application code. `MissionType` is on
 `DOCUMENTATION`, `BUG_FIX`, `TESTING`, `CODE_REVIEW`, `COMMUNITY_SUPPORT`.
 
 `checkAndCompleteMissions(userId)` re-checks every active mission against the user's synced
-GitHub activity (matched by `Profile.githubUsername`) and auto-completes + rewards any newly-met
-one. It runs whenever a signed-in user visits `/profile` or `/missions`.
+GitHub activity and auto-completes + rewards any newly-met one (also logged via `awardXp()`). It
+runs whenever a signed-in user visits `/profile` or `/missions`.
 
 ## Badges
 
@@ -28,3 +50,20 @@ PR, Top Reviewer, Bug Hunter, Documentation Hero, Community Helper, Mentor, Main
   embedding a QR code (via the `qrcode` package) that links back to the verification page
 
 Graduating a mentorship (`graduateMentorship`) automatically issues one.
+
+## Certification Programs
+
+`Program` rows define certification tracks (Contributor, Developer, QA Engineer, Product Analyst,
+Maintainer), each with a primary `minXp` gate (the same XP described above) plus optional
+additional hard requirements (`minMergedPRs`, `minIssuesOpened`, `minReviews`) - clear,
+independently-verifiable counts rather than any track that would require guessing what a PR was
+"really about" (e.g. no Documentation/DevOps Specialist tracks, since a merged PR's real-world
+category can't be reliably inferred from labels alone). `durationMonths` is a "typical completion
+time" shown for guidance only - it never gates completion, so finishing the requirements early
+earns the certificate immediately (see `getProgramProgress`/`checkAndCompletePrograms` in
+`services/programs.ts`).
+
+Programs with `requiresApproval: true` (currently just Maintainer) don't auto-issue: meeting the
+requirements instead moves the enrollment to `PENDING_APPROVAL`, and an administrator approves it
+from `/admin/program-approvals` (`approveProgramCompletion`), which issues the real certificate.
+

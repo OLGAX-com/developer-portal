@@ -57,6 +57,7 @@ export interface ProgramProgress {
   mergedPRs: ProgramActivityItem[];
   issuesOpened: ProgramActivityItem[];
   reviews: ProgramActivityItem[];
+  totalXp: number;
   requiredEndsAt: Date;
   daysRemaining: number;
   durationElapsed: boolean;
@@ -67,13 +68,21 @@ export interface ProgramProgress {
  * Tallies a contributor's LIFETIME synced GitHub activity against one program's requirements - not
  * just activity since enrollment, so contribution work someone already did still counts.
  * `requiredEndsAt`/`durationElapsed` describe the track's nominal length for display purposes only -
- * completion (see `checkAndCompletePrograms`) is based on `meetsRequirements` alone, not on waiting
- * out the duration, so finishing the requirements early earns the certificate immediately.
+ * completion (see `checkAndCompletePrograms`) is based on `meetsRequirements` alone - the SAME XP
+ * shown on a contributor's profile/leaderboard as the primary gate, with merged PR/issue/review
+ * counts as additional hard requirements where set, not on waiting out the duration.
  */
 export async function getProgramProgress(
   enrollment: { startedAt: Date },
-  program: { minMergedPRs: number; minIssuesOpened: number; minReviews: number; durationMonths: number },
+  program: {
+    minMergedPRs: number;
+    minIssuesOpened: number;
+    minReviews: number;
+    minXp: number;
+    durationMonths: number;
+  },
   githubUsername: string | null,
+  totalXp: number,
 ): Promise<ProgramProgress> {
   const requiredEndsAt = new Date(enrollment.startedAt);
   requiredEndsAt.setMonth(requiredEndsAt.getMonth() + program.durationMonths);
@@ -127,17 +136,24 @@ export async function getProgramProgress(
     mergedPRs,
     issuesOpened,
     reviews,
+    totalXp,
     requiredEndsAt,
     daysRemaining: Math.max(0, Math.ceil((requiredEndsAt.getTime() - Date.now()) / (24 * 60 * 60 * 1000))),
     durationElapsed: new Date() >= requiredEndsAt,
     meetsRequirements:
+      totalXp >= program.minXp &&
       mergedPRs.length >= program.minMergedPRs &&
       issuesOpened.length >= program.minIssuesOpened &&
       reviews.length >= program.minReviews,
   };
 }
 
-/** Re-checks every in-progress enrollment for a user, issuing a real certificate for any newly-completed program. */
+/**
+ * Re-checks every in-progress enrollment for a user, issuing a real certificate for any
+ * newly-completed program - except programs marked `requiresApproval` (currently just
+ * Maintainer), which move to PENDING_APPROVAL instead of auto-issuing (see
+ * `approveProgramCompletion` for the admin/maintainer side of that).
+ */
 export async function checkAndCompletePrograms(userId: string) {
   const profile = await prisma.profile.findUnique({ where: { userId } });
   const enrollments = await prisma.programEnrollment.findMany({
@@ -148,19 +164,34 @@ export async function checkAndCompletePrograms(userId: string) {
   const newlyCompleted: string[] = [];
 
   for (const enrollment of enrollments) {
-    const progress = await getProgramProgress(enrollment, enrollment.program, profile?.githubUsername ?? null);
+    const progress = await getProgramProgress(
+      enrollment,
+      enrollment.program,
+      profile?.githubUsername ?? null,
+      profile?.xp ?? 0,
+    );
     if (!progress.meetsRequirements) continue;
 
-    const achievements = [
-      enrollment.program.minMergedPRs > 0 ? `${progress.mergedPRs.length} merged pull requests` : null,
-      enrollment.program.minIssuesOpened > 0 ? `${progress.issuesOpened.length} issues opened` : null,
-      enrollment.program.minReviews > 0 ? `${progress.reviews.length} code reviews` : null,
-    ].filter((achievement): achievement is string => Boolean(achievement));
+    if (enrollment.program.requiresApproval) {
+      await prisma.programEnrollment.update({
+        where: { id: enrollment.id },
+        data: { status: "PENDING_APPROVAL" },
+      });
+      await createNotification({
+        userId,
+        type: "SYSTEM",
+        title: `Eligible for ${enrollment.program.title}`,
+        body: "You've met the requirements - a maintainer will review and approve your certificate.",
+        link: "/programs",
+      });
+      newlyCompleted.push(enrollment.program.slug);
+      continue;
+    }
 
     const certificate = await issueCertificate({
       userId,
       title: enrollment.program.certificateTitle,
-      achievements,
+      achievements: buildAchievements(enrollment.program, progress),
     });
 
     await prisma.programEnrollment.update({
@@ -180,4 +211,68 @@ export async function checkAndCompletePrograms(userId: string) {
   }
 
   return newlyCompleted;
+}
+
+function buildAchievements(
+  program: { minMergedPRs: number; minIssuesOpened: number; minReviews: number; minXp: number },
+  progress: ProgramProgress,
+) {
+  return [
+    program.minXp > 0 ? `${progress.totalXp} XP` : null,
+    program.minMergedPRs > 0 ? `${progress.mergedPRs.length} merged pull requests` : null,
+    program.minIssuesOpened > 0 ? `${progress.issuesOpened.length} issues opened` : null,
+    program.minReviews > 0 ? `${progress.reviews.length} code reviews` : null,
+  ].filter((achievement): achievement is string => Boolean(achievement));
+}
+
+/**
+ * Admin/maintainer-only: approves a PENDING_APPROVAL enrollment (currently only reachable for
+ * Maintainer-tier programs), issuing the real certificate and completing the enrollment.
+ */
+export async function approveProgramCompletion(enrollmentId: string) {
+  const enrollment = await prisma.programEnrollment.findUniqueOrThrow({
+    where: { id: enrollmentId },
+    include: { program: true },
+  });
+  if (enrollment.status !== "PENDING_APPROVAL") {
+    throw new Error("This enrollment isn't awaiting approval.");
+  }
+
+  const profile = await prisma.profile.findUnique({ where: { userId: enrollment.userId } });
+  const progress = await getProgramProgress(
+    enrollment,
+    enrollment.program,
+    profile?.githubUsername ?? null,
+    profile?.xp ?? 0,
+  );
+
+  const certificate = await issueCertificate({
+    userId: enrollment.userId,
+    title: enrollment.program.certificateTitle,
+    achievements: buildAchievements(enrollment.program, progress),
+  });
+
+  await prisma.programEnrollment.update({
+    where: { id: enrollment.id },
+    data: { status: "COMPLETED", completedAt: new Date(), certificateId: certificate.id },
+  });
+
+  await createNotification({
+    userId: enrollment.userId,
+    type: "SYSTEM",
+    title: `Program complete: ${enrollment.program.title}`,
+    body: "Your certificate is ready to view and share.",
+    link: `/certificates/${certificate.id}`,
+  });
+
+  return certificate;
+}
+
+/** All enrollments currently awaiting a maintainer/admin's manual approval, across all users. */
+export function listPendingProgramApprovals() {
+  return prisma.programEnrollment.findMany({
+    where: { status: "PENDING_APPROVAL" },
+    include: { program: true, user: { include: { profile: true } } },
+    orderBy: { updatedAt: "asc" },
+  });
 }

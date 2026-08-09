@@ -2,6 +2,7 @@ import Link from "next/link";
 
 import { listPendingMentorApplications } from "@olgax/database";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { approveMentorApplication, rejectMentorApplication } from "./actions";
@@ -36,9 +37,12 @@ export default async function MentorApplicationsAdminPage() {
                 </div>
                 <p className="text-xs text-muted-foreground">
                   {[
+                    application.user.profile?.currentRole,
+                    application.user.profile?.company,
                     application.user.profile?.university,
-                    application.user.profile?.location,
-                    application.user.profile?.age ? `${application.user.profile.age} yrs` : null,
+                    application.user.profile?.yearsOfExperience != null
+                      ? `${application.user.profile.yearsOfExperience} yrs experience`
+                      : null,
                   ]
                     .filter(Boolean)
                     .join(" · ") || "No profile details shared"}
@@ -50,8 +54,34 @@ export default async function MentorApplicationsAdminPage() {
                       </a>
                     </>
                   )}
+                  {application.user.profile?.portfolioUrl && (
+                    <>
+                      {" · "}
+                      <a href={application.user.profile.portfolioUrl} className="underline">
+                        Portfolio
+                      </a>
+                    </>
+                  )}
                 </p>
-                <p className="text-sm text-muted-foreground">{application.message}</p>
+                {application.user.profile?.expertiseAreas && application.user.profile.expertiseAreas.length > 0 && (
+                  <div className="flex flex-wrap gap-1.5">
+                    {application.user.profile.expertiseAreas.map((area) => (
+                      <Badge key={area} variant="outline" className="text-[11px]">
+                        {area}
+                      </Badge>
+                    ))}
+                  </div>
+                )}
+                <p className="text-sm text-muted-foreground">
+                  <span className="font-medium text-foreground">Why mentor: </span>
+                  {application.message}
+                </p>
+                {application.user.profile?.mentorOffering && (
+                  <p className="text-sm text-muted-foreground">
+                    <span className="font-medium text-foreground">Offers mentees: </span>
+                    {application.user.profile.mentorOffering}
+                  </p>
+                )}
                 {application.user.profile?.bio && (
                   <p className="rounded bg-muted p-2 text-sm text-muted-foreground">
                     {application.user.profile.bio}

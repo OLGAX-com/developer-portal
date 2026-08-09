@@ -8,8 +8,8 @@ import { getCertificate, getProgramProgress, type ProgramActivityItem } from "@o
 const TRACK_LABEL: Record<string, string> = {
   CONTRIBUTOR: "Contributor",
   DEVELOPER: "Developer",
-  QA: "QA / Tester",
-  ANALYST: "Analyst",
+  QA: "QA Engineer",
+  ANALYST: "Product Analyst",
   MAINTAINER: "Maintainer",
 };
 
@@ -25,7 +25,12 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
   const enrollment = certificate.programEnrollment;
   const program = enrollment?.program;
   const progress = enrollment
-    ? await getProgramProgress(enrollment, enrollment.program, certificate.user.profile?.githubUsername ?? null)
+    ? await getProgramProgress(
+        enrollment,
+        enrollment.program,
+        certificate.user.profile?.githubUsername ?? null,
+        certificate.user.profile?.xp ?? 0,
+      )
     : null;
 
   const verifyUrl = new URL(`/certificates/${certificate.id}`, request.url).toString();
@@ -65,6 +70,16 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
   if (program) {
     const durationLabel = `${program.durationMonths} month${program.durationMonths === 1 ? "" : "s"} track`;
     page.drawText(`${TRACK_LABEL[program.track] ?? program.track} - ${durationLabel}`, {
+      x: 40,
+      y: detailY,
+      size: 11,
+      font: bodyFont,
+      color: gray,
+    });
+    detailY -= 18;
+  }
+  if (progress && program && program.minXp > 0) {
+    page.drawText(`${progress.totalXp} XP`, {
       x: 40,
       y: detailY,
       size: 11,
