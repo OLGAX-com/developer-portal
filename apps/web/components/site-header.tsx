@@ -17,6 +17,7 @@ import {
 import { ThemeToggle } from "@/components/theme-toggle";
 import { UserMenu } from "@/components/user-menu";
 import { NotificationBell } from "@/components/notification-bell";
+import { MainNav, MobileNav } from "@/components/site-nav";
 
 const navLinks = [
   { href: "/projects", label: "Projects" },
@@ -42,9 +43,12 @@ export async function SiteHeader() {
     : navLinks;
 
   return (
-    <header className="sticky top-0 z-40 border-b bg-background/80 backdrop-blur">
-      <div className="mx-auto flex h-14 max-w-6xl items-center gap-4 px-4 sm:px-6">
-        <Link href="/" className="flex shrink-0 items-center gap-2 font-semibold whitespace-nowrap">
+    <header className="sticky top-0 z-40 border-b bg-background/80 backdrop-blur supports-backdrop-filter:bg-background/60">
+      <div className="mx-auto flex h-14 max-w-6xl items-center gap-3 px-4 sm:px-6 lg:gap-5">
+        <Link
+          href="/"
+          className="flex shrink-0 items-center gap-2 rounded-md font-semibold whitespace-nowrap transition-opacity hover:opacity-80"
+        >
           <Image
             src="/favicon_io-logo-light-bg/android-chrome-192x192.png"
             alt="Olgax Developer Portal"
@@ -62,26 +66,16 @@ export async function SiteHeader() {
           <span>Olgax</span>
         </Link>
 
-        <nav className="hidden min-w-0 flex-1 items-center gap-5 text-sm font-medium md:flex">
-          {links.map((link) => (
-            <Link
-              key={link.href}
-              href={link.href}
-              className="shrink-0 text-nowrap text-muted-foreground transition-colors hover:text-foreground"
-            >
-              {link.label}
-            </Link>
-          ))}
-        </nav>
+        <MainNav items={links} />
 
-        <div className="ml-auto flex shrink-0 items-center gap-2">
+        <div className="ml-auto flex shrink-0 items-center gap-1">
           <NotificationBell />
           <ThemeToggle />
           <UserMenu />
 
           <Sheet>
             <SheetTrigger
-              className={cn(buttonVariants({ variant: "ghost", size: "icon" }), "md:hidden")}
+              className={cn(buttonVariants({ variant: "ghost", size: "icon" }), "lg:hidden")}
               aria-label="Open menu"
             >
               <Menu className="size-4" />
@@ -90,13 +84,7 @@ export async function SiteHeader() {
               <SheetHeader>
                 <SheetTitle>Menu</SheetTitle>
               </SheetHeader>
-              <nav className="flex flex-col gap-4 px-4 text-sm font-medium">
-                {links.map((link) => (
-                  <Link key={link.href} href={link.href}>
-                    {link.label}
-                  </Link>
-                ))}
-              </nav>
+              <MobileNav items={links} />
             </SheetContent>
           </Sheet>
         </div>
