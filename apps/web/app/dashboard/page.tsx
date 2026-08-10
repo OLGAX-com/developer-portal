@@ -103,7 +103,7 @@ export default async function DashboardPage({
     searchParams,
   ]);
 
-  const [rank, mergedPullRequests, mentorshipCount] = await Promise.all([
+  const [rank, mergedPullRequests, mentorshipCount, claimedTaskCount] = await Promise.all([
     getUserRank(session.user.id),
     profile?.githubUsername
       ? prisma.githubIssue.count({
@@ -116,6 +116,9 @@ export default async function DashboardPage({
         status: { in: ["ACTIVE", "GRADUATED"] },
       },
     }),
+    // Any claim ever made, released or not - picking a first issue is a milestone you
+    // reach once, so handing the issue back later shouldn't undo the onboarding step.
+    prisma.taskClaim.count({ where: { userId: session.user.id } }),
   ]);
 
   const { xpIntoLevel, xpToNextLevel } = calculateLevel(profile?.xp ?? 0);
@@ -252,7 +255,12 @@ export default async function DashboardPage({
             action={verifySaidHelloInDiscussions}
             actionLabel="Check now"
           />
-          <ChecklistItem label="Pick your first issue on the Task Board" done={false} />
+          <ChecklistItem
+            label="Pick your first issue on the Task Board"
+            done={claimedTaskCount > 0}
+            href="/tasks"
+            actionLabel="Browse tasks"
+          />
           <ChecklistItem label="Open your first pull request" done={firstPrDone} />
         </CardContent>
       </Card>
